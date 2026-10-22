@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VOSCO | Inteligência Geográfica</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#101214;--panel:#191c20;--panel2:#202429;--line:#30353b;--text:#f2f0eb;--muted:#a8adb3;--gold:#b8a078;--green:#24a879;--blue:#4d9ce8;--amber:#d5a144;--gray:#9298a0;--purple:#a38bdf}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app{display:grid;grid-template-columns:310px 1fr;min-height:100vh}
+.sidebar{background:var(--panel);border-right:1px solid var(--line);padding:22px 18px;overflow:auto;max-height:100vh;position:sticky;top:0}
+.brand{display:flex;align-items:center;gap:12px;padding:2px 2px 20px;border-bottom:1px solid var(--line)}
+.logo{height:52px;width:52px;flex:0 0 52px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--gold);border-radius:50%;background:#101214;padding:5px}
+.logo img{display:block;width:100%;height:100%;object-fit:contain}
+.brand h1{font-size:18px;letter-spacing:3px;margin:0;font-weight:600}.brand p{font-size:9px;letter-spacing:1.7px;color:var(--muted);margin:3px 0 0}
+.section-title{font-size:10px;color:var(--gold);letter-spacing:1.6px;text-transform:uppercase;font-weight:700;margin:22px 0 10px}
+label{display:block;color:#c7c9cc;font-size:12px;margin:10px 0 5px}
+input,select,textarea{width:100%;background:#111316;border:1px solid #3a4047;border-radius:7px;color:var(--text);padding:10px 11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.btn{border:1px solid #41464c;background:var(--panel2);color:var(--text);border-radius:7px;padding:10px 12px;font-weight:600}
+.btn:hover{border-color:var(--gold)}.btn.primary{background:var(--gold);border-color:var(--gold);color:#171717}.btn.danger{border-color:#9d4b4b;color:#ffb7b7}.btn.danger:hover{background:#542b2b;border-color:#e06a6a}.btn.full{width:100%;margin-top:9px}.btn.small{padding:7px 9px;font-size:12px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.checks{display:grid;gap:8px}.check{display:flex;align-items:center;gap:8px;font-size:12px;color:#d3d5d7}.check input{width:auto;accent-color:var(--gold)}
+main{min-width:0;padding:22px 24px 28px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:20px}
+.eyebrow{font-size:10px;color:var(--gold);letter-spacing:2px;text-transform:uppercase}.topbar h2{font-size:25px;font-weight:500;margin:4px 0 0;letter-spacing:-.5px}
+.pill{border:1px solid #3d444a;border-radius:99px;padding:7px 11px;color:var(--muted);font-size:11px;white-space:nowrap}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:15px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:15px 16px;min-width:0}
+.metric .label{font-size:11px;color:var(--muted)}.metric .value{font-size:27px;font-weight:550;margin:5px 0 3px;letter-spacing:-.8px}.metric .sub{font-size:10px;color:var(--muted)}
+.map-panel{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+.map-head{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+.map-head h3{font-size:14px;margin:0;font-weight:600}.map-head p{font-size:11px;color:var(--muted);margin:3px 0 0}
+.map-tools{display:flex;gap:7px;flex-wrap:wrap}.map-tools .btn{font-size:11px;padding:7px 10px}
+#map{height:min(60vh,620px);min-height:420px;background:#dce1df}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.below{display:grid;grid-template-columns:1.15fr .85fr;gap:13px;margin-top:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:16px;min-width:0}
+.card h3{margin:0 0 12px;font-size:14px}.muted{color:var(--muted)}
+.region-list{display:grid;gap:9px}.region{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.region:last-child{border-bottom:0}.region strong{font-size:12px}.region small{display:block;color:var(--muted);font-size:10px;margin-top:2px}.region b{font-size:12px}
+.empty{padding:22px 12px;text-align:center;color:var(--muted);border:1px dashed #3a4047;border-radius:8px;font-size:12px}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:18px;z-index:2000}.modal.open{display:flex}
+.dialog{width:min(680px,100%);max-height:92vh;overflow:auto;background:#191c20;border:1px solid #41464c;border-radius:14px;padding:22px;box-shadow:0 20px 70px #0008}
+.dialog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.dialog h2{font-size:19px;margin:0;font-weight:550}.close{background:transparent;color:var(--muted);border:0;font-size:24px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.span2{grid-column:1/-1}.hint{font-size:11px;color:var(--muted);margin-top:5px}.dialog-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.table-wrap{overflow:auto;max-height:340px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:500}
+.status{display:inline-flex;align-items:center;gap:5px}.status .dot{margin:0}
+.notice{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6}
+#toast{position:fixed;bottom:20px;right:20px;background:#252b2d;border:1px solid #53635a;padding:12px 16px;border-radius:8px;display:none;z-index:3000;max-width:360px}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#191c20;color:#f2f0eb}.leaflet-popup-content{margin:12px;line-height:1.6}.popup-title{font-weight:700;font-size:13px}.popup-muted{color:#b4bac0;font-size:11px}.leaflet-control-attribution{font-size:9px}
+
+.analytics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.mini-stat{background:#15181b;border:1px solid var(--line);border-radius:9px;padding:12px;min-width:0}
+.mini-stat strong{display:block;font-size:17px;margin:5px 0}.mini-stat small{font-size:10px;color:var(--muted)}
+.stage-pill{display:inline-block;border:1px solid #4a5057;border-radius:20px;padding:3px 7px;font-size:10px;color:#ddd}
+.executive-mode .sidebar,.executive-mode .map-tools,.executive-mode #projectTable,.executive-mode #citySummary{display:none!important}
+.executive-mode .app{grid-template-columns:1fr}.executive-mode main{padding:28px}.executive-mode .metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+.executive-mode .metric .value{font-size:32px}
+#exitExecutiveBtn{display:none;position:fixed;top:16px;right:18px;z-index:1500;box-shadow:0 8px 24px #0006}
+.executive-mode #exitExecutiveBtn{display:inline-flex;align-items:center;gap:8px}
+@media(max-width:720px){.executive-mode #exitExecutiveBtn{top:10px;right:10px;padding:9px 12px}}
+@media(max-width:1000px){.analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.analytics-grid{grid-template-columns:1fr}.executive-mode .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1000px){.app{grid-template-columns:270px 1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.below{grid-template-columns:1fr}main{padding:18px}}
+@media(max-width:720px){.app{display:block}.sidebar{position:relative;max-height:none;border-right:0;border-bottom:1px solid var(--line)}main{padding:15px}.topbar{align-items:flex-start;flex-direction:column}.metrics{gap:8px}.metric{padding:12px}.metric .value{font-size:23px}#map{min-height:390px;height:52vh}.map-head{align-items:flex-start;flex-direction:column}.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}}
+
+#cloudGate{position:fixed;inset:0;z-index:5000;background:#101214;display:flex;align-items:center;justify-content:center;padding:20px}
+#cloudGate .gate-card{width:min(420px,100%);background:#191c20;border:1px solid #41464c;border-radius:16px;padding:28px;box-shadow:0 20px 80px #0008}
+#cloudGate h2{margin:0 0 8px;font-size:22px}#cloudGate p{color:#aeb4ba;font-size:13px;line-height:1.55}
+#cloudGate label{display:block;margin:12px 0 6px;font-size:12px;color:#c8cdd1}#cloudGate input{width:100%;padding:11px;border-radius:7px;border:1px solid #41464c;background:#101214;color:#f5f3ed}
+#cloudGate .gate-error{color:#ff9b9b;font-size:12px;min-height:18px;margin-top:10px}
+</style>
+</head>
+<body>
+<button class="btn primary" id="exitExecutiveBtn" type="button">← Voltar ao painel principal</button>
+<div id="cloudGate">
+  <div class="gate-card">
+    <div class="brand"><div class="logo"><img src="data:image/png;base64,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" alt="Logo VOSCO"></div><div><h1>VOSCO</h1><p>INTELIGÊNCIA GEOGRÁFICA</p></div></div>
+    <h2>Acesso ao painel</h2>
+    <p>Entre com seu usuário autorizado para acessar a base compartilhada de projetos.</p>
+    <form id="cloudLoginForm">
+      <label for="cloudEmail">E-mail</label><input id="cloudEmail" type="email" autocomplete="username" required placeholder="seu e-mail">
+      <label for="cloudPassword">Senha</label><input id="cloudPassword" type="password" autocomplete="current-password" required placeholder="Sua senha">
+      <button class="btn primary full" type="submit" style="margin-top:16px">Entrar</button>
+    </form>
+    <div id="cloudGateError" class="gate-error"></div>
+    <p style="font-size:11px">Acesso restrito aos dois usuários cadastrados no sistema. Se ainda não recebeu acesso, solicite ao administrador.</p>
+  </div>
+</div>
+<div class="app" id="mainApp" style="display:none">
+<aside class="sidebar">
+  <div class="brand"><div class="logo"><img src="data:image/png;base64,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" alt="Logo VOSCO"></div><div><h1>VOSCO</h1><p>INTELIGÊNCIA GEOGRÁFICA</p></div></div>
+  <div class="section-title">Visualização</div>
+  <label for="pole">Polo geográfico</label>
+  <select id="pole"><option value="all">Visão consolidada</option><option value="sp">São Paulo e entorno</option><option value="indaiatuba">Indaiatuba e região</option></select>
+  <label for="mapMode">Análise territorial</label><select id="mapMode"><option value="status">Por status dos projetos</option><option value="value">Por valor contratado</option><option value="completion">Por conclusão</option><option value="potential">Potencial a investigar</option></select>
+  <label for="statusFilter">Status dos projetos</label>
+  <select id="statusFilter"><option value="all">Todos os status</option><option>Finalizado</option><option>Em andamento</option><option>Contratado / aguardando início</option><option>Planejado</option><option>Pausado</option></select>
+  <label for="yearFilter">Ano de início</label>
+  <select id="yearFilter"><option value="all">Todos os anos</option></select>
+  <label for="cityFilter">Cidade</label>
+  <select id="cityFilter"><option value="all">Todas as cidades</option></select>
+  <div class="section-title">Camadas do mapa</div>
+  <div class="checks">
+    <label class="check"><input id="showProjects" type="checkbox" checked> Projetos cadastrados</label>
+    <label class="check"><input id="showCities" type="checkbox"> Cidades da área de atuação</label>
+    <label class="check"><input id="showOpportunities" type="checkbox"> Oportunidades potenciais</label>
+  </div>
+  <div class="section-title">Gestão da base</div>
+  <button class="btn primary full" id="addBtn">＋ Cadastrar projeto</button>
+  <div class="actions">
+    <button class="btn" id="importBtn">Importar Excel / CSV / JSON</button>
+    <button class="btn" id="exportBtn">Exportar dados</button>
+  </div>
+  <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/json,text/csv" hidden>
+  <button class="btn full" id="exportCsvBtn">Exportar planilha CSV</button>
+  <button class="btn full" id="manageBtn">Ver / editar projetos</button>
+  <button class="btn full" id="refreshBoundariesBtn">Atualizar limites municipais</button>
+  <button class="btn full" id="resetViewBtn">Restaurar enquadramento do mapa</button>
+  <button class="btn full" id="execModeBtn">Ativar modo executivo</button>
+  <button class="btn full" id="signOutBtn">Sair da conta</button>
+  <div class="notice">Base compartilhada online. As alterações ficam disponíveis para os usuários autorizados. Exporte backups periodicamente.</div>
+</aside>
+<main>
+  <div class="topbar"><div><div class="eyebrow">Painel estratégico • São Paulo</div><h2>Presença & expansão regional</h2></div><div class="pill" id="saveState">● Conectando à base compartilhada</div></div>
+  <section class="metrics">
+    <div class="metric"><div class="label">Projetos cadastrados</div><div class="value" id="mTotal">0</div><div class="sub">Na seleção atual</div></div>
+    <div class="metric"><div class="label">Projetos finalizados</div><div class="value" id="mDone">0</div><div class="sub" id="mDoneSub">0% dos projetos</div></div>
+    <div class="metric"><div class="label">Em andamento</div><div class="value" id="mActive">0</div><div class="sub" id="mActiveSub">0% dos projetos</div></div>
+    <div class="metric"><div class="label">Cidades com projetos</div><div class="value" id="mCities">0</div><div class="sub">Presença confirmada na base</div></div>
+  </section>
+  <section class="map-panel">
+    <div class="map-head"><div><h3>Mapa geográfico de projetos</h3><p>Mapa de ruas e avenidas de São Paulo e região. Cada marcador representa o endereço cadastrado; a cor indica o status do projeto.</p></div>
+      <div class="map-tools"><button class="btn" id="zoomSP">São Paulo</button><button class="btn" id="zoomInd">Indaiatuba</button><button class="btn" id="zoomBoth">Ver os dois polos</button></div>
+    </div>
+    <div id="map"></div>
+    <div class="legend">
+      <span><i class="dot" style="background:#24a879"></i>Finalizado</span>
+      <span><i class="dot" style="background:#4d9ce8"></i>Em andamento</span>
+      <span><i class="dot" style="background:#d5a144"></i>Contratado / planejado</span>
+      <span><i class="dot" style="background:#9298a0"></i>Pausado</span>
+      <span><i class="dot" style="background:#a38bdf"></i>Oportunidade potencial</span>
+    </div>
+  </section>
+  <div class="below">
+    <section class="card"><h3>Resumo por cidade</h3><div id="citySummary" class="region-list"><div class="empty">Cadastre projetos para visualizar a distribuição regional.</div></div></section>
+    <section class="card"><h3>Expansão e projeções</h3><div id="growthSummary" class="region-list"></div><p class="notice">As projeções serão calculadas a partir de dados históricos suficientes. Não são exibidas estimativas artificiais quando a base está vazia.</p></section>
+  </div>
+  <section class="card" style="margin-top:14px"><h3>Indicadores de desempenho por cidade</h3><p class="muted" style="font-size:11px;margin:-5px 0 12px">Indicadores calculados sobre os projetos que correspondem aos filtros atuais. Valores consideram o valor do projeto informado em cada cadastro.</p><div id="cityKpis"><div class="empty">Cadastre projetos para calcular os indicadores por cidade.</div></div></section>
+  <section class="card" style="margin-top:14px"><h3>Inteligência comercial & força territorial</h3><p class="muted" style="font-size:11px;margin:-5px 0 12px">Indicadores derivados da base VOSCO. O potencial é uma prioridade exploratória, não uma medição de demanda imobiliária externa.</p><div id="territoryIntelligence" class="analytics-grid"><div class="empty">Cadastre projetos para gerar análises territoriais.</div></div></section>
+  <section class="card" style="margin-top:14px"><h3>Pipeline comercial por etapa</h3><p class="muted" style="font-size:11px;margin:-5px 0 12px">A etapa comercial é independente do status de execução do projeto.</p><div id="pipelineSummary" class="analytics-grid"></div></section>
+  <section class="card" style="margin-top:14px"><h3>Base de projetos</h3><div id="projectTable"><div class="empty">Nenhum projeto cadastrado ainda. Use “Cadastrar projeto” ou importe uma planilha.</div></div></section>
+</main>
+</div>
+
+<div class="modal" id="projectModal" role="dialog" aria-modal="true">
+<div class="dialog">
+  <div class="dialog-head"><h2 id="formTitle">Cadastrar projeto</h2><button class="close" id="closeModal" aria-label="Fechar">×</button></div>
+  <p class="muted" style="font-size:12px;margin:6px 0 12px">Registre somente informações confirmadas. Campos com * são obrigatórios.</p>
+  <form id="projectForm">
+  <div class="form-grid">
+    <div class="span2"><label>Nome / identificação do projeto *</label><input id="fName" required maxlength="120" placeholder="Ex.: Residência — cliente ou código interno"></div>
+    <div class="span2"><label>Rua ou avenida *</label><input id="fStreet" required maxlength="160" placeholder="Ex.: Avenida Brigadeiro Faria Lima"></div>
+    <div><label>Número *</label><input id="fNumber" required maxlength="20" placeholder="Ex.: 1200"></div>
+    <div><label>Bairro *</label><input id="fNeighborhood" required maxlength="100" placeholder="Nome do bairro"></div>
+    <div><label>CEP *</label><input id="fCep" required inputmode="numeric" maxlength="9" placeholder="00000-000"></div>
+    <div><label>Cidade identificada</label><input id="fCity" readonly placeholder="Será identificada pelo endereço"><datalist id="citiesList"></datalist></div>
+    <div><label>Status do projeto *</label><select id="fStatus" required><option>Finalizado</option><option>Em andamento</option><option>Contratado / aguardando início</option><option>Planejado</option><option>Pausado</option></select></div>
+    <div><label>Etapa comercial</label><select id="fStage"><option>Oportunidade</option><option>Em qualificação</option><option>Proposta / negociação</option><option>Fechado</option><option>Perdido</option></select></div>
+    <div><label>Data de início</label><input id="fStart" type="date"></div>
+    <div><label>Data de conclusão</label><input id="fEnd" type="date"></div>
+    <div><label>Origem do lead</label><select id="fSource"><option value="">Não informado</option><option>Indicação</option><option>Arquiteto / designer</option><option>Instagram</option><option>Site</option><option>Cliente recorrente</option><option>Outro</option></select></div>
+    <div><label>Valor do projeto (R$)</label><input id="fValue" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: R$ 800.000,00"></div>
+    <input id="fLat" type="hidden"><input id="fLng" type="hidden">
+    <div class="span2"><label>Observações internas</label><textarea id="fNotes" rows="2" placeholder="Informações relevantes para a equipe"></textarea></div>
+  </div>
+  <p class="hint">O endereço será localizado no mapa antes de salvar. Confira rua, número, bairro e CEP para posicionar o marcador com a maior precisão possível.</p>
+  <div class="dialog-actions"><button type="button" class="btn" id="cancelModal">Cancelar</button><button class="btn primary" type="submit">Salvar projeto</button></div>
+  </form>
+</div>
+</div>
+<div class="modal" id="manageModal" role="dialog" aria-modal="true">
+<div class="dialog"><div class="dialog-head"><h2>Projetos cadastrados</h2><button class="close" id="closeManage">×</button></div><div id="manageContent"></div><div class="dialog-actions"><button class="btn" id="closeManage2">Fechar</button></div></div>
+</div>
+<div class="modal" id="importPreviewModal" role="dialog" aria-modal="true">
+<div class="dialog" style="width:min(900px,100%)">
+  <div class="dialog-head"><h2>Conferir importação de contratos</h2><button class="close" id="closeImportPreview" aria-label="Fechar">×</button></div>
+  <p class="muted" style="font-size:12px">Confira os registros antes de adicioná-los à base compartilhada. Projetos identificados como duplicados serão ignorados.</p>
+  <div id="importSummary" class="notice"></div>
+  <div id="importPreviewTable" class="table-wrap" style="max-height:48vh;margin-top:12px"></div>
+  <p class="notice">A importação adiciona novos registros; ela não altera projetos existentes. Recomendamos exportar um backup antes de importar uma base grande.</p>
+  <div class="dialog-actions"><button type="button" class="btn" id="cancelImportPreview">Cancelar</button><button type="button" class="btn primary" id="confirmImport">Importar projetos válidos</button></div>
+</div>
+</div>
+<div id="toast"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const STORAGE_KEY='vosco_geo_dashboard_v1';
+// Preencha após criar o projeto Supabase. A chave anon/public é própria para frontend; NUNCA use service_role aqui.
+const SUPABASE_URL='https://cljjnytiriiiigwrqnql.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsampueXRpcmlpaWlnd3JxbnFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwNjYxMDQsImV4cCI6MjEwNzY0MjEwNH0.jXotB5jdjeKran87InqeCHmOl4bMw4xT3f-gEG17zYw';
+const CLOUD_CONFIGURED=SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('COLE_AQUI') && SUPABASE_ANON_KEY.length>30 && !SUPABASE_ANON_KEY.includes('COLE_AQUI');
+let cloud=null, cloudUser=null, cloudChannel=null, cloudReady=false, cloudSaveQueue=Promise.resolve();
+const PREF_KEY='vosco_geo_preferences_v1';
+const GEO_DB_NAME='vosco_geo_cache_v1';
+const GEO_CACHE_KEY='municipal_features_sp_v1';
+const COLORS={'Finalizado':'#24a879','Em andamento':'#4d9ce8','Contratado / aguardando início':'#d5a144','Planejado':'#d5a144','Pausado':'#9298a0'};
+const CITY_DATA=[
+{name:'São Paulo',pole:'sp',lat:-23.5505,lng:-46.6333,kind:'core'},
+{name:'Guarulhos',pole:'sp',lat:-23.4543,lng:-46.5337},{name:'Osasco',pole:'sp',lat:-23.5329,lng:-46.7917},
+{name:'Barueri',pole:'sp',lat:-23.5112,lng:-46.8765},{name:'Santana de Parnaíba',pole:'sp',lat:-23.4442,lng:-46.9176},
+{name:'Cotia',pole:'sp',lat:-23.6039,lng:-46.9190},{name:'Taboão da Serra',pole:'sp',lat:-23.6019,lng:-46.7526},
+{name:'Santo André',pole:'sp',lat:-23.6639,lng:-46.5383},{name:'São Bernardo do Campo',pole:'sp',lat:-23.6914,lng:-46.5646},
+{name:'São Caetano do Sul',pole:'sp',lat:-23.6229,lng:-46.5548},{name:'Diadema',pole:'sp',lat:-23.6861,lng:-46.6234},
+{name:'Mogi das Cruzes',pole:'sp',lat:-23.5228,lng:-46.1883},{name:'Arujá',pole:'sp',lat:-23.3965,lng:-46.3201},
+{name:'Carapicuíba',pole:'sp',lat:-23.5235,lng:-46.8407},{name:'Itapevi',pole:'sp',lat:-23.5488,lng:-46.9327},
+{name:'Jandira',pole:'sp',lat:-23.5275,lng:-46.9023},{name:'Embu das Artes',pole:'sp',lat:-23.6437,lng:-46.8579},
+{name:'Itapecerica da Serra',pole:'sp',lat:-23.7161,lng:-46.8490},
+{name:'Biritiba Mirim',pole:'sp',lat:-23.572,lng:-46.040},{name:'Caieiras',pole:'sp',lat:-23.365,lng:-46.740},
+{name:'Cajamar',pole:'sp',lat:-23.356,lng:-46.876},{name:'Embu-Guaçu',pole:'sp',lat:-23.832,lng:-46.812},
+{name:'Ferraz de Vasconcelos',pole:'sp',lat:-23.541,lng:-46.368},{name:'Francisco Morato',pole:'sp',lat:-23.281,lng:-46.745},
+{name:'Franco da Rocha',pole:'sp',lat:-23.322,lng:-46.726},{name:'Guararema',pole:'sp',lat:-23.415,lng:-46.035},
+{name:'Itaquaquecetuba',pole:'sp',lat:-23.486,lng:-46.348},{name:'Juquitiba',pole:'sp',lat:-23.925,lng:-47.065},
+{name:'Mairiporã',pole:'sp',lat:-23.318,lng:-46.586},{name:'Mauá',pole:'sp',lat:-23.668,lng:-46.461},
+{name:'Pirapora do Bom Jesus',pole:'sp',lat:-23.396,lng:-47.002},{name:'Poá',pole:'sp',lat:-23.533,lng:-46.345},
+{name:'Ribeirão Pires',pole:'sp',lat:-23.710,lng:-46.413},{name:'Rio Grande da Serra',pole:'sp',lat:-23.744,lng:-46.398},
+{name:'Salesópolis',pole:'sp',lat:-23.531,lng:-45.846},{name:'Santa Isabel',pole:'sp',lat:-23.316,lng:-46.221},
+{name:'Suzano',pole:'sp',lat:-23.542,lng:-46.311},{name:'Vargem Grande Paulista',pole:'sp',lat:-23.600,lng:-47.027},
+{name:'Indaiatuba',pole:'indaiatuba',lat:-23.0884,lng:-47.2119,kind:'core'},
+{name:'Campinas',pole:'indaiatuba',lat:-22.9056,lng:-47.0608},{name:'Salto',pole:'indaiatuba',lat:-23.2008,lng:-47.2868},
+{name:'Itu',pole:'indaiatuba',lat:-23.2642,lng:-47.2992},{name:'Valinhos',pole:'indaiatuba',lat:-22.9706,lng:-46.9952},
+{name:'Vinhedo',pole:'indaiatuba',lat:-23.0302,lng:-46.9833},{name:'Itupeva',pole:'indaiatuba',lat:-23.1531,lng:-47.0572},
+{name:'Monte Mor',pole:'indaiatuba',lat:-22.9467,lng:-47.3158},{name:'Elias Fausto',pole:'indaiatuba',lat:-23.0428,lng:-47.3739},
+{name:'Hortolândia',pole:'indaiatuba',lat:-22.8583,lng:-47.2142},{name:'Sumaré',pole:'indaiatuba',lat:-22.8219,lng:-47.2669},
+{name:'Paulínia',pole:'indaiatuba',lat:-22.7611,lng:-47.1542},{name:'Nova Odessa',pole:'indaiatuba',lat:-22.7775,lng:-47.2958},
+{name:'Americana',pole:'indaiatuba',lat:-22.7374,lng:-47.3331},
+{name:'Cabreúva',pole:'indaiatuba',lat:-23.307,lng:-47.132},{name:'Jundiaí',pole:'indaiatuba',lat:-23.186,lng:-46.884},
+{name:'Louveira',pole:'indaiatuba',lat:-23.085,lng:-46.950},{name:'Capivari',pole:'indaiatuba',lat:-22.995,lng:-47.507},
+{name:'Rafard',pole:'indaiatuba',lat:-23.011,lng:-47.531},{name:'Tietê',pole:'indaiatuba',lat:-23.110,lng:-47.716},
+{name:'Porto Feliz',pole:'indaiatuba',lat:-23.214,lng:-47.525}
+];
+const OPPORTUNITIES=['Campinas','Valinhos','Vinhedo','Itu','Salto','São Bernardo do Campo','Barueri','Jundiaí','Louveira','Cabreúva','Americana','Hortolândia','Mairiporã','Santa Isabel'];
+let projects=loadProjects(), editingId=null, markers=[], cityMarkers=[], opportunityMarkers=[];
+const LOCAL_SERVER_MODE=location.protocol.startsWith('http') && ['127.0.0.1','localhost'].includes(location.hostname) && location.port==='8765';
+let map=L.map('map',{zoomControl:true}).setView([-23.27,-46.93],8);
+$('showCities').checked=false;$('showOpportunities').checked=false;
+// Mapa-base: imagem de satélite Esri com nomes/ruas sobrepostos; OSM como fallback.
+let baseLayerName='Esri World Imagery', baseLayerErrors=0, fallbackUsed=false;
+const imagery=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+  maxZoom:19, attribution:'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+});
+const labels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{
+  maxZoom:19, attribution:'', pane:'overlayPane', opacity:1
+});
+const streetFallback=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  subdomains:'abc',maxZoom:19, attribution:'&copy; OpenStreetMap contributors'
+});
+function useStreetFallback(){if(fallbackUsed)return;fallbackUsed=true;if(map.hasLayer(imagery))map.removeLayer(imagery);if(map.hasLayer(labels))map.removeLayer(labels);streetFallback.addTo(map);baseLayerName='OpenStreetMap';console.warn('Imagem de satélite indisponível; usando OpenStreetMap.');}
+imagery.on('tileerror',()=>{baseLayerErrors++;if(baseLayerErrors>=4)useStreetFallback();});
+imagery.on('tileload',()=>{baseLayerErrors=0;});
+labels.on('tileerror',()=>{if(map.hasLayer(labels))map.removeLayer(labels);});
+imagery.addTo(map);labels.addTo(map);
+const boundaryLayer=L.layerGroup().addTo(map), projectLayer=L.layerGroup().addTo(map), cityLayer=L.layerGroup().addTo(map), opportunityLayer=L.layerGroup().addTo(map);
+let municipalFeatures=[]; let boundariesState='loading';
+function loadProjects(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){return []}}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(projects));render();if(!cloud||!cloudReady){$('saveState').textContent='● Sem conexão com a base compartilhada';return} $('saveState').textContent='● Sincronizando…';const snapshot=projects.map(p=>({id:String(p.id),data:p,updated_at:new Date().toISOString(),updated_by:cloudUser.id}));cloudSaveQueue=cloudSaveQueue.then(async()=>{if(snapshot.length){const {error}=await cloud.from('vosco_projects').upsert(snapshot,{onConflict:'id'});if(error)throw error} $('saveState').textContent='● Sincronizado com a equipe'}).catch(err=>{$('saveState').textContent='● Falha na sincronização';toast('Não foi possível sincronizar. Confira a conexão e tente novamente.');console.error(err)});}catch(e){$('saveState').textContent='● Falha ao salvar';alert('Não foi possível salvar os dados localmente. Exporte um backup.');console.error(e)}}
+async function loadCloudProjects(){const {data,error}=await cloud.from('vosco_projects').select('id,data,updated_at').order('updated_at',{ascending:false});if(error)throw error;projects=(data||[]).map(row=>({...row.data,id:row.id}));localStorage.setItem(STORAGE_KEY,JSON.stringify(projects));render();$('saveState').textContent='● Base compartilhada conectada'}
+async function initializeProjects(){if(!CLOUD_CONFIGURED){$('cloudGateError').textContent='O painel ainda precisa ser conectado ao projeto Supabase. Consulte o guia de implantação incluído no pacote.';$('cloudLoginForm').querySelector('button').disabled=true;return}try{cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data:{session}}=await cloud.auth.getSession();if(session){cloudUser=session.user;await enterCloudApp()}cloud.auth.onAuthStateChange(async(event,session)=>{if(event==='SIGNED_IN'&&session){cloudUser=session.user;setTimeout(()=>enterCloudApp(),0)}if(event==='SIGNED_OUT'){cloudReady=false;cloudUser=null;$('mainApp').style.display='none';$('cloudGate').style.display='flex'}})}catch(e){$('cloudGateError').textContent='Não foi possível conectar ao serviço. Verifique a configuração.';console.error(e)}}
+async function enterCloudApp(){if(!cloud||!cloudUser)return;try{const {data:member,error:memberError}=await cloud.from('vosco_members').select('user_id').eq('user_id',cloudUser.id).maybeSingle();if(memberError||!member)throw new Error('Este usuário não está autorizado para o painel.');await loadCloudProjects();$('cloudGate').style.display='none';$('mainApp').style.display='grid';cloudReady=true;setTimeout(()=>{try{map.invalidateSize(true);drawMap()}catch(e){console.warn('Mapa aguardando dimensionamento',e)}},250);if(cloudChannel)cloud.removeChannel(cloudChannel);cloudChannel=cloud.channel('vosco-projects-live').on('postgres_changes',{event:'*',schema:'public',table:'vosco_projects'},async(payload)=>{if(payload.new?.updated_by===cloudUser.id)return;try{await loadCloudProjects()}catch(e){console.error(e)}}).subscribe();const hadPrefs=!!localStorage.getItem(PREF_KEY);loadPrefs();if(!hadPrefs)map.fitBounds([[-24.05,-47.9],[-22.55,-45.65]],{padding:[18,18]});render();loadMunicipalBoundaries()}catch(e){cloudReady=false;$('cloudGateError').textContent=e.message.includes('autorizado')?e.message:'Falha ao carregar a base compartilhada. Verifique a configuração e as políticas de acesso.';console.error(e)}}
+$('cloudLoginForm').addEventListener('submit',async e=>{e.preventDefault();if(!cloud){$('cloudGateError').textContent='Configuração do Supabase pendente. Consulte o guia de implantação.';return}const email=$('cloudEmail').value.trim(),password=$('cloudPassword').value;$('cloudGateError').textContent='Entrando…';const {error}=await cloud.auth.signInWithPassword({email,password});if(error)$('cloudGateError').textContent='Não foi possível entrar. Confira e-mail, senha e autorização.';else $('cloudGateError').textContent='Autenticado. Carregando projetos…'});
+function openGeoDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('IndexedDB indisponível'));return}const req=indexedDB.open(GEO_DB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('cache'))req.result.createObjectStore('cache')};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function geoCacheGet(key){const db=await openGeoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('cache','readonly'),req=tx.objectStore('cache').get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close()})}
+async function geoCacheSet(key,value){const db=await openGeoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('cache','readwrite');tx.objectStore('cache').put(value,key);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
+function persistPrefs(){let p={pole:$('pole').value,status:$('statusFilter').value,year:$('yearFilter').value,city:$('cityFilter').value,showProjects:$('showProjects').checked,showCities:$('showCities').checked,showOpportunities:$('showOpportunities').checked,mapMode:$('mapMode').value,center:map.getCenter(),zoom:map.getZoom()};localStorage.setItem(PREF_KEY,JSON.stringify(p))}
+function loadPrefs(){try{let p=JSON.parse(localStorage.getItem(PREF_KEY)||'{}');if(p.pole)$('pole').value=p.pole;if(p.status)$('statusFilter').value=p.status;if(p.showProjects!==undefined)$('showProjects').checked=p.showProjects;if(p.showCities!==undefined)$('showCities').checked=p.showCities;if(p.showOpportunities!==undefined)$('showOpportunities').checked=p.showOpportunities;if(p.mapMode)$('mapMode').value=p.mapMode;if(p.center&&p.zoom)map.setView([p.center.lat,p.center.lng],p.zoom)}catch(e){}}
+function normName(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function cityCoords(city,pole){let c=CITY_DATA.find(x=>x.name.toLowerCase()===String(city||'').trim().toLowerCase());if(c)return [c.lat,c.lng];return pole==='indaiatuba'?[-23.0884,-47.2119]:[-23.5505,-46.6333]}
+function activeProjects(){return projects.filter(p=>{let pole=$('pole').value,st=$('statusFilter').value,year=$('yearFilter').value,city=$('cityFilter').value;return (pole==='all'||p.pole===pole)&&(st==='all'||p.status===st)&&(year==='all'||(p.start||'').slice(0,4)===year)&&(city==='all'||p.city===city)})}
+function pct(n,total){return total?Math.round(n/total*100):0}
+function valueColor(ratio){return ratio>=.67?'#24a879':ratio>=.34?'#d5a144':'#4d9ce8'}
+function markerIcon(color,large=false){return L.divIcon({className:'',html:`<div style="width:${large?17:13}px;height:${large?17:13}px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 1px 6px #0006"></div>`,iconSize:[large?17:13,large?17:13],iconAnchor:[large?8:6,large?8:6]})}
+function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2})}
+function parseMoney(raw){if(raw===null||raw===undefined||String(raw).trim()==='')return '';let s=String(raw).trim().replace(/R\$/gi,'').replace(/\s/g,'');if(s.includes(',')&&s.includes('.')){s=s.replace(/\./g,'').replace(',','.')}else if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.')}else if((s.match(/\./g)||[]).length>1){s=s.replace(/\./g,'')}else if(/\.\d{3}$/.test(s)){s=s.replace('.','')}let n=Number(s);return Number.isFinite(n)&&n>=0?n:''}
+function popupProject(p){return `<div class="popup-title">${esc(p.name)}</div><div class="popup-muted">${esc(p.address||p.city)} • ${esc(p.city)} </div>${p.geocodePrecision==='city' ? '<div class="popup-muted">Localização aproximada — atualize o endereço para maior precisão.</div>' : ''}<div class="status"><i class="dot" style="background:${COLORS[p.status]||'#9298a0'}"></i>${esc(p.status)}</div>${p.start?`<div class="popup-muted">Início: ${esc(p.start)}</div>`:''}${p.value?`<div class="popup-muted">Valor do projeto: ${money(p.value)}</div>`:''}<button onclick="window.voscoEdit('${p.id}')" style="margin-top:8px;padding:6px 9px;border:1px solid #8e8063;background:#262a2e;color:#fff;border-radius:5px">Editar projeto</button>`}
+function drawMap(){boundaryLayer.clearLayers();projectLayer.clearLayers();cityLayer.clearLayers();opportunityLayer.clearLayers();
+const pole=$('pole').value, shown=activeProjects();
+if($('showCities').checked && municipalFeatures.length){municipalFeatures.filter(f=>{let nm=f.properties?.name||f.properties?.NM_MUN||f.properties?.nome||'';let c=CITY_DATA.find(x=>normName(x.name)===normName(nm));return c&&(pole==='all'||c.pole===pole)}).forEach(f=>{let nm=f.properties?.name||f.properties?.NM_MUN||f.properties?.nome||'';let city=CITY_DATA.find(x=>normName(x.name)===normName(nm));if(!city)return;let cityProjects=shown.filter(p=>normName(p.city)===normName(city.name));let statuses=[...new Set(cityProjects.map(p=>p.status))];let mode=$('mapMode').value;let color=statuses.length===1?(COLORS[statuses[0]]||'#9298a0'):statuses.length>1?'#a38bdf':'#68737c';
+let cityValue=cityProjects.reduce((sum,p)=>sum+(Number(p.value)||0),0), cityDone=cityProjects.length?cityProjects.filter(p=>p.status==='Finalizado').length/cityProjects.length:0;
+if(mode==='value'){const allValues=CITY_DATA.map(c=>shown.filter(p=>normName(p.city)===normName(c.name)).reduce((sum,p)=>sum+(Number(p.value)||0),0));const maxValue=Math.max(1,...allValues);color=cityValue?valueColor(cityValue/maxValue):'#68737c'}
+if(mode==='completion')color=cityProjects.length?valueColor(cityDone):'#68737c';
+if(mode==='potential')color=cityProjects.length?'#24a879':(OPPORTUNITIES.includes(city.name)?'#a38bdf':'#68737c');
+L.geoJSON(f,{style:{color:cityProjects.length?color:'#77818a',weight:cityProjects.length?2:1,opacity:.9,fillColor:color,fillOpacity:cityProjects.length?.22:.045,dashArray:cityProjects.length?null:'4 4'}}).bindPopup(`<b>${esc(city.name)}</b><br>${cityProjects.length} projeto(s) cadastrado(s)<div class="popup-muted">${cityProjects.length?'Área com projetos registrados': 'Delimitação municipal; presença da VOSCO não confirmada'}${statuses.length>1?'<br>Status diversos na cidade':''}</div>`).addTo(boundaryLayer)})}
+if($('showProjects').checked)shown.forEach(p=>{let hasExactCoords=p.lat!==''&&p.lng!==''&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng));let xy=hasExactCoords?[Number(p.lat),Number(p.lng)]:cityCoords(p.city,p.pole);
+if(!hasExactCoords)p.geocodePrecision='city';const marker=L.marker(xy,{icon:markerIcon(COLORS[p.status]||'#9298a0',true),keyboard:true,riseOnHover:true});marker.bindPopup(popupProject(p),{autoPan:true,keepInView:true,maxWidth:280});marker.on('click',()=>{if(!map.hasLayer(marker))return;marker.openPopup()});marker.addTo(projectLayer)});
+if($('showCities').checked)CITY_DATA.filter(c=>pole==='all'||c.pole===pole).forEach(c=>{let count=projects.filter(p=>p.city.toLowerCase()===c.name.toLowerCase()).length;let col=count? '#b8a078':'#6e7880';L.circleMarker([c.lat,c.lng],{radius:c.kind?6:4,color:col,weight:1,fillColor:col,fillOpacity:count?.85:.45}).bindPopup(`<b>${esc(c.name)}</b><br>${count} projeto(s) cadastrado(s)<div class="popup-muted">${count?'Presença registrada na base':'Cidade da área de visualização; presença não confirmada'}</div>`).addTo(cityLayer)});
+if($('showOpportunities').checked)CITY_DATA.filter(c=>(pole==='all'||c.pole===pole)&&OPPORTUNITIES.includes(c.name)&&!projects.some(p=>p.city.toLowerCase()===c.name.toLowerCase())).forEach(c=>L.circleMarker([c.lat,c.lng],{radius:8,color:'#a38bdf',weight:2,fillColor:'#a38bdf',fillOpacity:.17,dashArray:'3 3'}).bindPopup(`<b>Área potencial: ${esc(c.name)}</b><br><span class="popup-muted">Área sugerida para avaliação comercial; não representa demanda comprovada.</span>`).addTo(opportunityLayer));
+projectLayer.eachLayer(l=>{if(l.getPopup())l.getPopup().options.maxWidth=260});
+}
+async function loadMunicipalBoundaries(forceRefresh=false){
+  const wanted=new Set(CITY_DATA.map(c=>normName(c.name)));
+  if(!forceRefresh){
+    try{const cached=await geoCacheGet(GEO_CACHE_KEY);if(Array.isArray(cached)&&cached.length){municipalFeatures=cached;boundariesState='cached';$('saveState').textContent=`● Limites em cache (${cached.length} municípios)`;render()}}catch(e){console.warn('Cache geográfico não disponível; buscando dados atualizados.',e)}
+  }
+  try{
+    if(!navigator.onLine)throw new Error('Sem conexão com a internet.');
+    const locRes=await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/35/municipios');
+    if(!locRes.ok)throw new Error('Não foi possível consultar a lista de municípios do IBGE.');
+    const municipalities=await locRes.json();
+    const selected=municipalities.filter(m=>wanted.has(normName(m.nome)));
+    if(!selected.length)throw new Error('A lista do IBGE foi recebida, mas nenhum município correspondeu à lista do painel.');
+    const results=[];
+    // Limita a concorrência para evitar sobrecarregar a API pública do IBGE.
+    for(let i=0;i<selected.length;i+=6){
+      const batch=await Promise.allSettled(selected.slice(i,i+6).map(async m=>{
+        const url=`https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${m.id}?formato=application/vnd.geo+json&qualidade=intermediaria`;
+        const r=await fetch(url); if(!r.ok)throw new Error('Falha ao carregar '+m.nome);
+        const data=await r.json();let features=[];
+        if(data?.type==='FeatureCollection')features=Array.isArray(data.features)?data.features:[];
+        else if(data?.type==='Feature')features=[data];
+        else if(data?.type && Array.isArray(data.coordinates))features=[{type:'Feature',properties:{},geometry:data}];
+        else if(Array.isArray(data))features=data.filter(x=>x?.type==='Feature');
+        return features.filter(f=>f?.geometry?.type&&Array.isArray(f.geometry.coordinates)).map(f=>({...f,properties:{...(f.properties||{}),name:m.nome,NM_MUN:m.nome,ibge_id:m.id}}));
+      }));
+      results.push(...batch);
+    }
+    const fresh=results.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
+    if(!fresh.length)throw new Error('A fonte de limites não retornou geometrias.');
+    municipalFeatures=fresh;boundariesState='ready';
+    try{await geoCacheSet(GEO_CACHE_KEY,municipalFeatures)}catch(e){console.warn('Não foi possível armazenar o cache geográfico.',e)}
+    $('saveState').textContent=`● Limites oficiais atualizados (${municipalFeatures.length})`;
+    const failures=results.length-fresh.length;
+    toast(`Limites municipais atualizados: ${fresh.length} de ${selected.length} cidades.${failures?` ${failures} não carregaram nesta tentativa.`:''}`);
+    setTimeout(()=>{try{map.invalidateSize(true)}catch(e){}},100);
+    render();
+  }catch(err){
+    boundariesState=municipalFeatures.length?'cached':'unavailable';
+    $('saveState').textContent=municipalFeatures.length?`● Usando limites em cache (${municipalFeatures.length})`:'● Limites indisponíveis';
+    toast(municipalFeatures.length?'Sem atualização do IBGE; mantendo os limites salvos neste computador.':'Não foi possível carregar limites do IBGE. Verifique a conexão e tente novamente.');console.warn(err)
+  }
+}
+function fillFilters(){let year=$('yearFilter').value,city=$('cityFilter').value;let years=[...new Set(projects.map(p=>(p.start||'').slice(0,4)).filter(Boolean))].sort().reverse();$('yearFilter').innerHTML='<option value="all">Todos os anos</option>'+years.map(y=>`<option>${y}</option>`).join('');if(years.includes(year))$('yearFilter').value=year;
+let cities=[...new Set(projects.map(p=>p.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));$('cityFilter').innerHTML='<option value="all">Todas as cidades</option>'+cities.map(c=>`<option>${esc(c)}</option>`).join('');if(cities.includes(city))$('cityFilter').value=city;
+$('citiesList').innerHTML=CITY_DATA.map(c=>`<option value="${esc(c.name)}">`).join('')}
+function render(){fillFilters();const list=activeProjects(),total=list.length,done=list.filter(p=>p.status==='Finalizado').length,ongoing=list.filter(p=>p.status==='Em andamento').length;
+$('mTotal').textContent=total;$('mDone').textContent=done;$('mDoneSub').textContent=pct(done,total)+'% dos projetos filtrados';$('mActive').textContent=ongoing;$('mActiveSub').textContent=pct(ongoing,total)+'% dos projetos filtrados';$('mCities').textContent=new Set(list.map(p=>p.city.toLowerCase())).size;
+let byCity={};list.forEach(p=>{byCity[p.city]=byCity[p.city]||{total:0,done:0,active:0,contracted:0,paused:0,planned:0,value:0};let v=byCity[p.city];v.total++;if(p.status==='Finalizado')v.done++;if(p.status==='Em andamento')v.active++;if(p.status==='Contratado / aguardando início')v.contracted++;if(p.status==='Pausado')v.paused++;if(p.status==='Planejado')v.planned++;v.value+=Number(p.value)||0});
+let entries=Object.entries(byCity).sort((a,b)=>b[1].value-a[1].value||b[1].total-a[1].total);$('citySummary').innerHTML=entries.length?entries.slice(0,10).map(([city,v])=>`<div class="region"><div><strong>${esc(city)}</strong><small>${v.done} finalizado(s) · ${v.active} em andamento</small><small>Valor contratado: ${money(v.value)}</small></div><b>${v.total} projeto(s)</b></div>`).join(''):'<div class="empty">Cadastre projetos para visualizar a distribuição regional.</div>';
+$('cityKpis').innerHTML=entries.length?`<div class="table-wrap" style="max-height:520px"><table><thead><tr><th>Cidade</th><th>Projetos</th><th>Valor total</th><th>Ticket médio</th><th>Finalizados</th><th>Em andamento</th><th>Contratados</th><th>Conclusão</th></tr></thead><tbody>${entries.map(([city,v])=>`<tr><td><strong>${esc(city)}</strong></td><td>${v.total}</td><td>${money(v.value)}</td><td>${money(v.value/v.total)}</td><td>${v.done} (${pct(v.done,v.total)}%)</td><td>${v.active}</td><td>${v.contracted}</td><td>${pct(v.done,v.total)}%</td></tr>`).join('')}</tbody><tfoot><tr><th>Total geral</th><th>${list.length}</th><th>${money(list.reduce((a,p)=>a+(Number(p.value)||0),0))}</th><th>${money(list.length?list.reduce((a,p)=>a+(Number(p.value)||0),0)/list.length:0)}</th><th>${done}</th><th>${ongoing}</th><th>${list.filter(p=>p.status==='Contratado / aguardando início').length}</th><th>${pct(done,total)}%</th></tr></tfoot></table></div>`:'<div class="empty">Cadastre projetos para calcular os indicadores por cidade.</div>';
+const stages=['Oportunidade','Em qualificação','Proposta / negociação','Fechado','Perdido'];
+ const stageCounts=stages.map(stage=>({stage,count:list.filter(p=>(p.stage||((p.status==='Finalizado')?'Fechado':'Oportunidade'))===stage).length,value:list.filter(p=>(p.stage||((p.status==='Finalizado')?'Fechado':'Oportunidade'))===stage).reduce((sum,p)=>sum+(Number(p.value)||0),0)}));
+ $('pipelineSummary').innerHTML=stageCounts.map(x=>`<div class="mini-stat"><small>${esc(x.stage)}</small><strong>${x.count} projeto(s)</strong><small>Valor associado: ${money(x.value)}</small></div>`).join('');
+ const scored=entries.map(([city,v])=>{const completion=pct(v.done,v.total),allValue=list.reduce((sum,p)=>sum+(Number(p.value)||0),0),valueShare=allValue?v.value/allValue:0;const score=Math.round(Math.min(100,v.total*12+completion*.25+Math.min(25,valueShare*100)));return {city,...v,completion,score}});
+ const top=scored.slice().sort((a,b)=>b.score-a.score).slice(0,5);
+ const totalValue=list.reduce((sum,p)=>sum+(Number(p.value)||0),0);
+ const historicalYears=[...new Set(projects.map(p=>(p.start||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort();
+ let forecastHtml='';
+ if(historicalYears.length>=2){const ys=historicalYears.slice(-2),vals=ys.map(y=>projects.filter(p=>(p.start||'').startsWith(y)).reduce((sum,p)=>sum+(Number(p.value)||0),0));if(vals[0]>0&&vals[1]>0){const change=vals[1]/vals[0]-1;forecastHtml=[{label:'Conservador',rate:Math.min(0,change*.5)},{label:'Base',rate:change},{label:'Otimista',rate:Math.max(.05,change*1.25)}].map(x=>`<div class="mini-stat"><small>Cenário ${x.label}</small><strong>${money(Math.max(0,vals[1]*(1+x.rate)))}</strong><small>Referência indicativa para o próximo ano · variação aplicada: ${Math.round(x.rate*100)}%</small></div>`).join('')}else forecastHtml='<div class="mini-stat"><small>Projeção financeira</small><strong>Dados insuficientes</strong><small>São necessários valores positivos em dois anos com registros.</small></div>'}else forecastHtml='<div class="mini-stat"><small>Projeção financeira</small><strong>Dados insuficientes</strong><small>Cadastre projetos com valores e datas em pelo menos dois anos diferentes.</small></div>';
+ const noProjectCities=CITY_DATA.filter(c=>($('pole').value==='all'||c.pole===$('pole').value)&&!list.some(p=>normName(p.city)===normName(c.name)));
+ const potentialTop=noProjectCities.filter(c=>OPPORTUNITIES.includes(c.name)).slice(0,5);
+ $('territoryIntelligence').innerHTML=`<div class="mini-stat"><small>Valor dos projetos filtrados</small><strong>${money(totalValue)}</strong><small>Soma dos valores informados</small></div><div class="mini-stat"><small>Ticket médio</small><strong>${money(total?totalValue/total:0)}</strong><small>Considerando ${total} projeto(s)</small></div><div class="mini-stat"><small>Conclusão</small><strong>${pct(done,total)}%</strong><small>Projetos finalizados sobre o total</small></div><div class="mini-stat"><small>Índice de força territorial</small><strong>${top.length?Math.round(top.reduce((a,x)=>a+x.score,0)/top.length):0}/100</strong><small>Índice exploratório das cidades líderes; fórmula considera volume, conclusão e participação no valor</small></div><div class="mini-stat" style="grid-column:span 2"><small>Cidades com maior força na seleção</small><strong>${top.length?top.map(x=>`${esc(x.city)} (${x.score}/100)`).join(' · '):'Sem dados'}</strong><small>Índice relativo à base cadastrada; não é comparação com o mercado externo.</small></div>${forecastHtml}<div class="mini-stat" style="grid-column:1/-1"><small>Potencial a investigar</small><strong>${potentialTop.length?potentialTop.map(c=>esc(c.name)).join(' · '):'Nenhuma cidade sugerida nesta seleção'}</strong><small>Lista exploratória configurada no painel. Não confirma demanda, renda local nem oportunidade comercial real.</small></div>`;
+ let years=[...new Set(projects.map(p=>(p.start||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort();let growth=[];
+if(years.length>=2){let y=years[years.length-1],prev=String(Number(y)-1),latest=projects.filter(p=>(p.start||'').startsWith(y)),prior=projects.filter(p=>(p.start||'').startsWith(prev)),a=latest.length,b=prior.length;growth.push(`<div class="region"><div><strong>Projetos iniciados em ${y}</strong><small>Comparação com ${prev}: ${b} projeto(s)</small></div><b>${a}</b></div>`);if(b>0){const rate=(a-b)/b;const projectedCount=Math.max(0,Math.round(a*(1+rate)));const latestValue=latest.reduce((sum,p)=>sum+(Number(p.value)||0),0),priorValue=prior.reduce((sum,p)=>sum+(Number(p.value)||0),0);const projectedValue=priorValue>0?Math.max(0,latestValue*(latestValue/priorValue)):0;growth.push(`<div class="region"><div><strong>Variação anual observada</strong><small>Comparação entre os dois anos mais recentes com dados</small></div><b>${rate>=0?'+':''}${Math.round(rate*100)}%</b></div>`);growth.push(`<div class="region"><div><strong>Expectativa para ${Number(y)+1}</strong><small>Projeção indicativa: ${projectedCount} projeto(s), usando a variação recente</small></div><b>${projectedCount}</b></div>`);if(priorValue>0&&latestValue>0)growth.push(`<div class="region"><div><strong>Valor projetado para ${Number(y)+1}</strong><small>Extrapolação simples da variação anual dos valores cadastrados; não é garantia de receita</small></div><b>${money(projectedValue)}</b></div>`)}else{growth.push(`<div class="region"><div><strong>Expectativa de crescimento</strong><small>O ano anterior não tem projetos cadastrados; não é possível calcular uma taxa percentual confiável.</small></div><b>—</b></div>`)}}
+let totalCities=new Set(projects.map(p=>(p.city||'').toLowerCase()).filter(Boolean)).size;if(years.length<2){growth.push(`<div class="region"><div><strong>Expansão geográfica</strong><small>${totalCities} cidade(s) com projetos registrados</small></div><b>${totalCities}</b></div>`);growth.push(`<div class="region"><div><strong>Expectativa de crescimento</strong><small>Cadastre datas de início em pelo menos dois anos diferentes para estimar uma tendência. Quanto mais histórico, mais útil será a projeção.</small></div><b>—</b></div>`)}$('growthSummary').innerHTML=growth.join('');
+$('projectTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><tr><th>Projeto</th><th>Cidade</th><th>Status</th><th>Início</th><th>Ações</th></tr></thead><tbody>${list.slice(0,100).map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.city)}</td><td><span class="status"><i class="dot" style="background:${COLORS[p.status]||'#9298a0'}"></i>${esc(p.status)}</span></td><td>${esc(p.start||'—')}</td><td><button class="btn small" onclick="window.voscoEdit('${p.id}')">Editar</button> <button class="btn small danger" onclick="window.voscoDelete('${p.id}')">Excluir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhum projeto cadastrado ainda. Use “Cadastrar projeto” ou importe uma planilha.</div>';
+drawMap();persistPrefs()}
+function toast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3200)}
+function openForm(p=null){editingId=p?.id||null;$('projectForm').reset();$('formTitle').textContent=p?'Editar projeto':'Cadastrar projeto';if(p){$('fName').value=p.name||'';$('fCity').value=p.city||'';$('fStatus').value=p.status||'Planejado';$('fStage').value=p.stage||((p.status==='Finalizado')?'Fechado':'Oportunidade');$('fStart').value=p.start||'';$('fEnd').value=p.end||'';$('fSource').value=p.source||'';$('fValue').value=p.value!==''&&p.value!=null?money(p.value):'';$('fLat').value=p.lat??'';$('fLng').value=p.lng??'';$('fNotes').value=p.notes||'';$('fStreet').value=p.street||p.address||'';$('fNumber').value=p.number||'';$('fNeighborhood').value=p.neighborhood||'';$('fCep').value=p.cep||''}else{$('fCity').value='';$('fLat').value='';$('fLng').value='';$('fStage').value='Oportunidade'}$('projectModal').classList.add('open')}
+function closeForm(){$('projectModal').classList.remove('open')}
+$('fValue').addEventListener('blur',()=>{const v=parseMoney($('fValue').value);$('fValue').value=v===''?'':money(v)});
+$('fValue').addEventListener('focus',()=>{const v=parseMoney($('fValue').value);$('fValue').value=v===''?'':String(v).replace('.',',')});
+async function geocodeProjectAddress({street,number,neighborhood,cep,city}){
+  const cleanCep=String(cep||'').trim();
+  const queries=[
+    [street,number,neighborhood,city,cleanCep,'São Paulo','Brasil'].filter(Boolean).join(', '),
+    [street,number,neighborhood,cleanCep,'São Paulo','Brasil'].filter(Boolean).join(', '),
+    [cleanCep,number,street,neighborhood,city,'Brasil'].filter(Boolean).join(', ')
+  ];
+  // Photon é a primeira opção: não depende de chave/API key e responde com dados do OpenStreetMap.
+  for(const query of queries){
+    try{
+      const u='https://photon.komoot.io/api/?q='+encodeURIComponent(query)+'&limit=5&lang=default&lat=-23.55&lon=-46.63';
+      const r=await fetch(u,{headers:{'Accept':'application/json'}});
+      if(r.ok){const j=await r.json();const fs=(j.features||[]).filter(f=>Array.isArray(f.geometry?.coordinates)&&f.geometry.coordinates.length>=2);
+        if(fs.length){
+          const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+          const scored=fs.map(f=>{const a=f.properties||{};let score=0;const label=[a.name,a.street,a.housenumber,a.district,a.suburb,a.postcode,a.city,a.county].filter(Boolean).join(' ');if(number&&norm(label).includes(norm(number)))score+=3;if(street&&norm(label).includes(norm(street)))score+=5;if(neighborhood&&norm(label).includes(norm(neighborhood)))score+=2;if(cleanCep&&norm(label).includes(norm(cleanCep)))score+=3;return {f,score};}).sort((a,b)=>b.score-a.score);
+          const f=scored[0].f,a=f.properties||{},xy=f.geometry.coordinates;
+          const cityName=a.city||a.town||a.village||a.municipality||a.county||a.locality||'';
+          return {lat:xy[1],lon:xy[0],display_name:[a.name,a.housenumber,a.street,a.district||a.suburb,a.postcode,cityName,a.state,a.country].filter(Boolean).join(', '),address:{city:cityName,town:a.town,village:a.village,municipality:a.municipality,county:a.county,postcode:a.postcode},_provider:'Photon'};
+        }
+      }
+    }catch(err){console.warn('Photon geocoding indisponível para uma consulta; tentando alternativa.',err);}
+  }
+  // Fallback: Nominatim, com tentativas mais específicas e mais amplas.
+  for(const query of queries){
+    try{const u='https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=br&q='+encodeURIComponent(query);
+      const r=await fetch(u,{headers:{'Accept-Language':'pt-BR','Accept':'application/json'}});
+      if(r.ok){const arr=await r.json();if(arr.length)return {...arr[0],_provider:'Nominatim'};}
+    }catch(err){console.warn('Nominatim indisponível para uma consulta.',err);}
+  }
+  throw new Error('Não foi possível localizar esse endereço nos serviços de mapas. Confira o nome oficial da rua, número, bairro e CEP. Se continuar falhando, tente incluir a cidade no campo de endereço ou verifique se o endereço consta no OpenStreetMap.');
+}
+function cityFromGeoResult(result){const a=result?.address||{};return a.city||a.town||a.municipality||a.village||a.county||a.city_district||''}
+function poleFromCity(city){return /indaiatuba|campinas|itu|salto|valinhos|vinhedo|jundia[ií]|americana|hortol[aâ]ndia/i.test(city||'')?'indaiatuba':'sp'}
+$('projectForm').addEventListener('submit',async e=>{e.preventDefault();const submitBtn=$('projectForm').querySelector('button[type="submit"]');if(submitBtn.disabled)return;
+  const street=$('fStreet').value.trim(),number=$('fNumber').value.trim(),neighborhood=$('fNeighborhood').value.trim(),cep=$('fCep').value.trim();
+  const typedCity=$('fCity').value.trim();const oldProject=editingId?projects.find(x=>x.id===editingId):null;
+  const addressLine=[street,number,neighborhood,cep].filter(Boolean).join(', ');
+  let geo=null,city=typedCity,lat='',lng='',precision='address';
+  const addressChanged=!oldProject||street!==(oldProject.street||oldProject.address||'')||number!==(oldProject.number||'')||neighborhood!==(oldProject.neighborhood||'')||cep!==(oldProject.cep||'');
+  if(!addressChanged&&oldProject&&oldProject.lat!==''&&oldProject.lat!=null&&oldProject.lng!==''&&oldProject.lng!=null&&Number.isFinite(Number(oldProject.lat))&&Number.isFinite(Number(oldProject.lng))){lat=Number(oldProject.lat);lng=Number(oldProject.lng);city=oldProject.city||city;precision=oldProject.geocodePrecision||'address'}
+  else {
+    submitBtn.disabled=true;submitBtn.textContent='Localizando endereço…';
+    try{geo=await geocodeProjectAddress({street,number,neighborhood,cep,city:typedCity});lat=Number(geo.lat);lng=Number(geo.lon);if(!Number.isFinite(lat)||!Number.isFinite(lng))throw new Error('O serviço retornou coordenadas inválidas. Tente novamente.');const detected=cityFromGeoResult(geo);if(detected)city=detected;
+      if(!city){const confirmed=prompt('O mapa localizou o endereço, mas não identificou a cidade. Digite a cidade para continuar:','');if(!confirmed?.trim())throw new Error('Informe a cidade para concluir o cadastro.');city=confirmed.trim()}
+      const locationLabel=geo.display_name||addressLine;const confirmLocation=confirm(`Endereço localizado no mapa:
+
+${locationLabel}
+
+A posição parece correta?`);if(!confirmLocation)throw new Error('Cadastro cancelado. Ajuste o endereço e tente novamente.');
+    }catch(err){alert(err.message||'Não foi possível localizar o endereço. Confira os dados e tente novamente.');submitBtn.disabled=false;submitBtn.textContent='Salvar projeto';return}
+    finally{submitBtn.disabled=false;submitBtn.textContent='Salvar projeto'}
+  }
+  if(!city){alert('Não foi possível identificar a cidade pelo endereço. Revise o CEP ou tente novamente.');return}
+  const known=CITY_DATA.find(c=>normName(c.name)===normName(city));if(known)city=known.name;
+  const pole=poleFromCity(city);
+  const p={id:editingId||('p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),name:$('fName').value.trim(),pole,city,address:addressLine,street,number,neighborhood,cep,status:$('fStatus').value,stage:$('fStage').value,start:$('fStart').value,end:$('fEnd').value,source:$('fSource').value,value:parseMoney($('fValue').value),lat,lng,geocodePrecision:precision,geocodedAddress:geo?.display_name||oldProject?.geocodedAddress||'',notes:$('fNotes').value.trim()};
+  if(editingId)projects=projects.map(x=>x.id===editingId?p:x);else projects.push(p);closeForm();save();toast(editingId?'Projeto atualizado.':'Projeto cadastrado e localizado no mapa.');if($('pole').value!=='all'&&$('pole').value!==pole)$('pole').value=pole;render();map.setView([Number(p.lat),Number(p.lng)],16);
+});
+window.voscoEdit=id=>{let p=projects.find(x=>x.id===id);if(p)openForm(p)};
+function manage(){let list=activeProjects();$('manageContent').innerHTML=list.length?`<div class="table-wrap"><table><thead><tr><th>Projeto</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead><tbody>${list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.city)}</td><td>${esc(p.status)}</td><td><button class="btn small" onclick="window.voscoEdit('${p.id}');document.getElementById('manageModal').classList.remove('open')">Editar</button> <button class="btn small" onclick="window.voscoDelete('${p.id}')">Excluir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhum projeto corresponde aos filtros atuais.</div>';$('manageModal').classList.add('open')}
+window.voscoDelete=async id=>{const p=projects.find(x=>String(x.id)===String(id));if(!p)return;if(!confirm('Tem certeza de que deseja excluir o projeto “'+p.name+'”? Esta ação removerá o registro da base compartilhada e não pode ser desfeita.'))return;try{if(cloud&&cloudReady){const {error}=await cloud.from('vosco_projects').delete().eq('id',String(id));if(error)throw error;}projects=projects.filter(x=>String(x.id)!==String(id));localStorage.setItem(STORAGE_KEY,JSON.stringify(projects));render();if($('manageModal').classList.contains('open'))manage();toast(cloud&&cloudReady?'Projeto excluído da base compartilhada.':'Projeto excluído deste navegador.');}catch(err){console.error('Falha ao excluir projeto:',err);toast('Não foi possível excluir o projeto da base compartilhada. Nenhuma alteração local foi aplicada.');}};
+function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
+function exportData(){let blob=new Blob([JSON.stringify({app:'VOSCO Inteligência Geográfica',version:2,exportedAt:new Date().toISOString(),projects},null,2)],{type:'application/json;charset=utf-8'});downloadBlob(blob,'vosco-projetos-backup.json');toast('Backup JSON exportado. Guarde-o em uma pasta segura.')}
+function exportCSV(){const cols=[['name','Nome do projeto'],['city','Cidade'],['pole','Polo'],['status','Status do projeto'],['stage','Etapa comercial'],['start','Data de início'],['end','Data de conclusão'],['address','Endereço completo'],['street','Rua / avenida'],['number','Número'],['neighborhood','Bairro'],['cep','CEP'],['source','Origem do lead'],['value','Valor do projeto'],['lat','Latitude'],['lng','Longitude'],['notes','Observações']];const lines=[cols.map(c=>csvEscape(c[1])).join(';'),...projects.map(p=>cols.map(c=>csvEscape(p[c[0]]??'')).join(';'))];downloadBlob(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),'vosco-projetos.csv');toast('Planilha CSV exportada.')}
+function downloadBlob(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function parseCSV(text){let rows=[],row=[],cell='',quoted=false;for(let i=0;i<text.length;i++){let c=text[i],n=text[i+1];if(c==='"'&&quoted&&n==='"'){cell+='"';i++}else if(c==='"')quoted=!quoted;else if((c===','||c===';')&&!quoted){row.push(cell.trim());cell=''}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(cell.trim());if(row.some(x=>x!==''))rows.push(row);row=[];cell=''}else cell+=c}row.push(cell.trim());if(row.some(x=>x!==''))rows.push(row);if(!rows.length)return [];let headers=rows.shift().map(x=>x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''));let aliases={name:['nome','projeto','nomeprojeto','identificacao','cliente','dealname','nomedonegocio'],city:['cidade','municipio','city'],pole:['polo','regiao','regional'],status:['status','situacao','etapa','stage','statusprojeto'],start:['inicio','datainicio','datadeinicio','data','createdate','dataentrada'],end:['conclusao','dataconclusao','datafechamento','closedate'],address:['endereco','bairro','logradouro','streetaddress'],source:['origem','origemdolead','fonte'],value:['valor','valorcontratado','valornegocio','amount','dealamount'],lat:['latitude','lat'],lng:['longitude','long','lng'],notes:['observacoes','observacao','notas','descricao']};let idx={};Object.keys(aliases).forEach(k=>idx[k]=headers.findIndex(h=>aliases[k].includes(h)));return rows.map(r=>{let g=k=>idx[k]>=0?r[idx[k]]||'':'';let poleRaw=g('pole').toLowerCase();let city=g('city');let known=CITY_DATA.find(c=>c.name.toLowerCase()===city.toLowerCase());return {id:'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),name:g('name')||'Projeto importado',city:known?known.name:city,pole:poleRaw.includes('indaiatuba')||poleRaw.includes('campinas')?'indaiatuba':known?.pole||'sp',status:normalizeStatus(g('status')),start:normalizeDate(g('start')),end:normalizeDate(g('end')),address:g('address'),source:g('source'),value:(parseMoney(g('value'))||''),lat:g('lat')!==''?Number(g('lat')):'',lng:g('lng')!==''?Number(g('lng')):'',notes:g('notes')};}).filter(p=>p.city&&p.name)}
+function normalizeStatus(s){let t=(s||'').toLowerCase();if(t.includes('final')||t.includes('conclu')||t.includes('completed'))return 'Finalizado';if(t.includes('andamento')||t.includes('execu')||t.includes('in progress'))return 'Em andamento';if(t.includes('paus'))return 'Pausado';if(t.includes('contrat')||t.includes('ganho')||t.includes('closed won')||t==='won')return 'Contratado / aguardando início';return 'Planejado'}
+function normalizeDate(s){if(!s)return '';if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;let m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''}
+$('addBtn').onclick=()=>openForm();$('closeModal').onclick=closeForm;$('cancelModal').onclick=closeForm;
+$('manageBtn').onclick=manage;$('closeManage').onclick=$('closeManage2').onclick=()=>$('manageModal').classList.remove('open');
+$('signOutBtn').onclick=async()=>{if(cloud)await cloud.auth.signOut();};
+function setExecutiveMode(on){document.body.classList.toggle('executive-mode',on);$('execModeBtn').textContent=on?'Sair do modo executivo':'Ativar modo executivo';$('exitExecutiveBtn').setAttribute('aria-label',on?'Voltar ao painel principal':'');setTimeout(()=>{map.invalidateSize(true);drawMap()},150)}
+$('execModeBtn').onclick=()=>setExecutiveMode(!document.body.classList.contains('executive-mode'));
+$('exitExecutiveBtn').onclick=()=>setExecutiveMode(false);
+$('exportBtn').onclick=exportData;$('exportCsvBtn').onclick=exportCSV;$('refreshBoundariesBtn').onclick=()=>loadMunicipalBoundaries(true);$('importBtn').onclick=()=>$('fileInput').click();
+let pendingImport=[];
+function importKey(p){return (String(p.name||'').trim()+'|'+String(p.city||'').trim()).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR')}
+function normalizeImportedItems(items){
+  if(!Array.isArray(items)&&Array.isArray(items?.projects))items=items.projects;
+  if(!Array.isArray(items))throw Error('O arquivo precisa conter uma lista de projetos ou ser um backup VOSCO.');
+  return items.map((raw,i)=>{
+    const p=raw||{};
+    const pick=(...keys)=>{for(const k of keys){if(p[k]!==undefined&&p[k]!==null&&String(p[k]).trim()!=='')return p[k]}return ''};
+    const name=String(pick('name','nome','Nome do projeto','projeto','cliente')||'').trim();
+    const cityRaw=String(pick('city','cidade','municipio','município')||'').trim();
+    const known=CITY_DATA.find(c=>normName(c.name)===normName(cityRaw));
+    const poleRaw=normName(pick('pole','polo','regiao','regional'));
+    const valueRaw=pick('value','valor','valorcontratado','valor contratado','Valor contratado','amount','dealamount');
+    const value=parseMoney(valueRaw);
+    const latRaw=pick('lat','latitude'),lngRaw=pick('lng','longitude','long');
+    const pole=(poleRaw.includes('indaiatuba')||poleRaw.includes('campinas')||known?.pole==='indaiatuba')?'indaiatuba':'sp';
+    return {
+      id:String(pick('id')||('p_'+Date.now()+'_'+i+'_'+Math.random().toString(36).slice(2,7))),
+      name,city:known?known.name:cityRaw,pole,
+      address:String(pick('address','endereco','endereço','bairro')||''),
+      status:normalizeStatus(String(pick('status','situacao','situação','status do projeto')||'')),
+      stage:String(pick('stage','etapa comercial','etapacomercial','pipeline')||'Oportunidade'),
+      start:normalizeDate(String(pick('start','inicio','início','datainicio','data de início','data','createdate')||'')),
+      end:normalizeDate(String(pick('end','conclusao','conclusão','dataconclusao','data de conclusão')||'')),
+      source:String(pick('source','origem','origem do lead','fonte')||''),
+      value:value===''?'':value,
+      lat:latRaw!==''&&Number.isFinite(Number(latRaw))?Number(latRaw):'',
+      lng:lngRaw!==''&&Number.isFinite(Number(lngRaw))?Number(lngRaw):'',
+      notes:String(pick('notes','observacoes','observações','notas','descricao','descrição')||''),
+      _row:i+2,
+      _issue:!name?'Nome/identificação ausente':!cityRaw?'Cidade ausente':(valueRaw!==''&&value==='')?'Valor inválido':''
+    };
+  });
+}
+function showImportPreview(items){
+  const existing=new Set(projects.map(importKey)), seen=new Set();
+  pendingImport=items.map(p=>({...p,_duplicate:!p._issue&&(existing.has(importKey(p))||seen.has(importKey(p)))}));
+  pendingImport.forEach(p=>{if(!p._issue)seen.add(importKey(p))});
+  const valid=pendingImport.filter(p=>!p._issue&&!p._duplicate);
+  const dup=pendingImport.filter(p=>p._duplicate).length;
+  const invalid=pendingImport.filter(p=>p._issue).length;
+  $('importSummary').innerHTML=`<div class="row"><div class="metric"><div class="label">Registros lidos</div><div class="value">${items.length}</div></div><div class="metric"><div class="label">Prontos para importar</div><div class="value">${valid.length}</div></div></div><p>Duplicados a ignorar: <strong>${dup}</strong> · Registros com problema: <strong>${invalid}</strong>. A prévia abaixo mostra até 100 linhas.</p>`;
+  const preview=pendingImport.slice(0,100);
+  $('importPreviewTable').innerHTML=preview.length?`<table><thead><tr><th>Linha</th><th>Projeto / cliente</th><th>Cidade</th><th>Status</th><th>Valor</th><th>Resultado</th></tr></thead><tbody>${preview.map(p=>`<tr><td>${p._row}</td><td>${esc(p.name||'—')}</td><td>${esc(p.city||'—')}</td><td>${esc(p.status||'—')}</td><td>${p.value===''?'—':money(p.value)}</td><td>${p._issue?`<span style="color:#ff9b9b">${esc(p._issue)}</span>`:p._duplicate?'<span style="color:#d5a144">Duplicado — ignorar</span>':'<span style="color:#24a879">Pronto</span>'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhum registro encontrado.</div>';
+  $('confirmImport').disabled=valid.length===0;
+  $('confirmImport').textContent=`Importar ${valid.length} projeto(s)`;
+  $('importPreviewModal').classList.add('open');
+}
+function closeImportPreview(){$('importPreviewModal').classList.remove('open');pendingImport=[]}
+$('closeImportPreview').onclick=$('cancelImportPreview').onclick=closeImportPreview;
+$('confirmImport').onclick=()=>{
+  const clean=pendingImport.filter(p=>!p._issue&&!p._duplicate).map(({_row,_issue,_duplicate,...p})=>p);
+  if(!clean.length){toast('Não há projetos válidos para importar.');return}
+  projects.push(...clean);save();render();closeImportPreview();
+  toast(`${clean.length} projeto(s) importado(s). Os duplicados e registros com problemas foram ignorados.`);
+};
+$('fileInput').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    let items;
+    const filename=f.name.toLowerCase();
+    if(filename.endsWith('.csv'))items=parseCSV(await f.text());
+    else if(filename.endsWith('.xlsx')||filename.endsWith('.xls')){
+      if(!window.XLSX)throw Error('A biblioteca de leitura Excel não carregou. Verifique a conexão e tente novamente.');
+      const data=await f.arrayBuffer(),wb=XLSX.read(data,{type:'array',cellDates:true});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      if(!sheet)throw Error('A planilha não contém uma aba com dados.');
+      items=parseCSV(XLSX.utils.sheet_to_csv(sheet,{FS:';'}));
+    }else{
+      const parsed=JSON.parse(await f.text());
+      items=Array.isArray(parsed)||Array.isArray(parsed?.projects)?normalizeImportedItems(parsed):[];
+    }
+    if(!Array.isArray(items))throw Error('Não foi possível reconhecer uma lista de projetos no arquivo.');
+    // CSV/Excel já são convertidos pelo mapeamento de cabeçalhos; JSON também é normalizado.
+    items=items.map((p,i)=>({...p,_row:p._row||i+2,_issue:p._issue||(!String(p.name||'').trim()?'Nome/identificação ausente':!String(p.city||'').trim()?'Cidade ausente':'')}));
+    if(!items.length)throw Error('Nenhum projeto válido encontrado. Confira se a primeira linha contém os cabeçalhos e se há colunas de projeto/cliente e cidade.');
+    showImportPreview(items);
+  }catch(err){alert('Não foi possível preparar a importação: '+err.message);console.error(err)}
+  finally{e.target.value=''}
+};
+['pole','statusFilter','yearFilter','cityFilter','showProjects','showCities','showOpportunities','mapMode'].forEach(id=>$(id).addEventListener('change',()=>{render();persistPrefs()}));
+function fitPole(pole){const feats=municipalFeatures.filter(f=>{const c=CITY_DATA.find(x=>normName(x.name)===normName(f.properties?.name||''));return c&&(pole==='all'||c.pole===pole)});if(feats.length){const layer=L.geoJSON({type:'FeatureCollection',features:feats});map.fitBounds(layer.getBounds(),{padding:[20,20],maxZoom:10})}else if(pole==='sp')map.fitBounds([[-24.05,-47.15],[-22.85,-45.65]],{padding:[20,20]});else if(pole==='indaiatuba')map.fitBounds([[-23.45,-47.9],[-22.55,-46.65]],{padding:[20,20]});else map.fitBounds([[-24.05,-47.9],[-22.55,-45.65]],{padding:[20,20]})}
+$('zoomSP').onclick=()=>{$('pole').value='sp';render();fitPole('sp');persistPrefs()};
+$('zoomInd').onclick=()=>{$('pole').value='indaiatuba';render();fitPole('indaiatuba');persistPrefs()};
+$('zoomBoth').onclick=()=>{$('pole').value='all';render();fitPole('all');persistPrefs()};
+$('resetViewBtn').onclick=()=>{fitPole($('pole').value);persistPrefs()};
+map.on('moveend zoomend',persistPrefs);
+$('projectModal').addEventListener('click',e=>{if(e.target===$('projectModal'))closeForm()});$('manageModal').addEventListener('click',e=>{if(e.target===$('manageModal'))$('manageModal').classList.remove('open')});$('importPreviewModal').addEventListener('click',e=>{if(e.target===$('importPreviewModal'))closeImportPreview()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForm();$('manageModal').classList.remove('open');closeImportPreview()}});
+initializeProjects();
+})();
+</script>
+</body>
+</html>
