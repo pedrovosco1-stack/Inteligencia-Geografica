@@ -271,7 +271,42 @@ body.client-presentation-mode #clientPresentationView .map-head {
       <div class="value" id="clientCities">0</div>
     </div>
   </div>
+<div class="client-city-tools" style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;position:relative">
+  <input
+    id="clientCitySearch"
+    type="search"
+    placeholder="Pesquisar cidade..."
+    autocomplete="off"
+    style="flex:1;min-width:220px;padding:12px;border-radius:8px;border:1px solid #454545;background:#17191c;color:#fff"
+  >
 
+  <button
+    class="btn"
+    id="clientCityFilterBtn"
+    type="button"
+    aria-expanded="false"
+  >
+    ☷ Filtrar cidades
+  </button>
+
+  <button
+    class="btn"
+    id="clientCityClearBtn"
+    type="button"
+  >
+    Limpar busca
+  </button>
+
+  <div
+    id="clientCityFilterList"
+    style="display:none;width:100%;max-height:240px;overflow-y:auto;border:1px solid #454545;border-radius:8px;background:#17191c;padding:8px"
+  ></div>
+
+  <div
+    id="clientCitySearchResults"
+    style="display:none;width:100%;border:1px solid #454545;border-radius:8px;background:#17191c;padding:8px"
+  ></div>
+</div>
   <div id="clientPresentationMap" style="height:65vh;min-height:380px;border-radius:12px;overflow:hidden"></div>
 
   <div class="metric" style="margin-top:16px">
@@ -518,6 +553,7 @@ if (document.body.classList.contains('client-presentation-mode')) {
     initClientPresentationMap();
   }
   refreshClientPresentation();
+  clientRenderCityControls();
 }
 }
 function toast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3200)}
@@ -757,12 +793,138 @@ function refreshClientPresentation() {
     clientMap.setView([-23.27, -46.93], 8);
   }
 }
+function clientAvailableCities() {
+  const cities = new Map();
 
+  projects.forEach(p => {
+    const city = String(p.city || '').trim();
+    if (!city) return;
+
+    const key = normName(city);
+    if (!cities.has(key)) {
+      cities.set(key, { name: city, count: 0, pole: p.pole || '' });
+    }
+    cities.get(key).count++;
+  });
+
+  return [...cities.values()].sort((a, b) =>
+    a.name.localeCompare(b.name, 'pt-BR')
+  );
+}
+
+function clientSelectCity(city) {
+  if (!clientMap || !city) return;
+
+  const match = clientAvailableCities().find(
+    c => normName(c.name) === normName(city)
+  );
+  if (!match) return;
+
+  const xy = cityCoords(match.name, match.pole);
+  if (!xy || !Number.isFinite(Number(xy[0])) ||
+      !Number.isFinite(Number(xy[1]))) return;
+
+  clientMap.flyTo(
+    [Number(xy[0]), Number(xy[1])],
+    11,
+    { duration: 0.8 }
+  );
+}
+
+function clientRenderCityControls() {
+  const search = $('clientCitySearch');
+  const filterList = $('clientCityFilterList');
+  const results = $('clientCitySearchResults');
+  const filterBtn = $('clientCityFilterBtn');
+
+  if (!search || !filterList || !results || !filterBtn) return;
+
+  const cities = clientAvailableCities();
+
+  filterList.innerHTML = cities.length
+    ? cities.map(c => `
+        <button type="button" class="btn full client-city-option"
+          data-city="${esc(c.name)}"
+          style="display:flex;justify-content:space-between;width:100%;margin:4px 0">
+          <span>${esc(c.name)}</span>
+          <span>${c.count} projeto(s)</span>
+        </button>
+      `).join('')
+    : '<div class="empty">Nenhuma cidade cadastrada.</div>';
+
+  function renderSearchResults() {
+    const query = normName(search.value.trim());
+
+    if (!query) {
+      results.style.display = 'none';
+      results.innerHTML = '';
+      return;
+    }
+
+    const matches = cities.filter(c => normName(c.name).includes(query));
+
+    results.innerHTML = matches.length
+      ? matches.map(c => `
+          <button type="button" class="btn full client-city-option"
+            data-city="${esc(c.name)}"
+            style="display:flex;justify-content:space-between;width:100%;margin:4px 0">
+            <span>${esc(c.name)}</span>
+            <span>${c.count} projeto(s)</span>
+          </button>
+        `).join('')
+      : '<div class="empty">Nenhuma cidade encontrada.</div>';
+
+    results.style.display = 'block';
+  }
+
+  search.oninput = renderSearchResults;
+
+  filterBtn.onclick = () => {
+    const opening = filterList.style.display === 'none';
+    filterList.style.display = opening ? 'block' : 'none';
+    filterBtn.setAttribute('aria-expanded', String(opening));
+  };
+
+  [filterList, results].forEach(container => {
+    container.onclick = event => {
+      const button = event.target.closest('.client-city-option');
+      if (!button) return;
+
+      const city = button.dataset.city;
+      search.value = city;
+      results.style.display = 'none';
+      filterList.style.display = 'none';
+      filterBtn.setAttribute('aria-expanded', 'false');
+      clientSelectCity(city);
+    };
+  });
+
+  $('clientCityClearBtn').onclick = () => {
+    search.value = '';
+    results.style.display = 'none';
+    filterList.style.display = 'none';
+    filterBtn.setAttribute('aria-expanded', 'false');
+
+    if (clientMap && clientProjectLayer) {
+      const bounds = clientProjectLayer.getBounds();
+
+      if (bounds.isValid()) {
+        clientMap.fitBounds(bounds, {
+          padding: [30, 30],
+          maxZoom: 8
+        });
+      } else {
+        clientMap.setView([-23.27, -46.93], 8);
+      }
+    }
+  };
+}
 function showClientPresentation() {
   document.body.classList.add('client-presentation-mode');
 
   initClientPresentationMap();
   refreshClientPresentation();
+  clientRenderCityControls();
 
   setTimeout(() => {
     if (clientMap) clientMap.invalidateSize(true);
