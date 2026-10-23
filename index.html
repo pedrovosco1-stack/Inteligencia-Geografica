@@ -783,6 +783,64 @@ function drawShowrooms() {
       .addTo(showroomLayer);
   });
 }
+
+function drawClientShowrooms() {
+  if (!clientMap || !clientShowroomLayer) return;
+
+  clientShowroomLayer.clearLayers();
+
+  const logoElement = document.querySelector('#cloudGate .logo img');
+  const logoSrc = logoElement ? logoElement.src : '';
+
+  const showrooms = [
+    {
+      name: 'Showroom Indaiatuba',
+      lat: -23.0871472,
+      lng: -47.1992591
+    },
+    {
+      name: 'Showroom São Paulo',
+      lat: -23.542463,
+      lng: -46.567947
+    }
+  ];
+
+  showrooms.forEach(showroom => {
+    const logoHtml = logoSrc
+      ? `<img src="${logoSrc}" alt="VOSCO"
+           style="width:24px;height:24px;object-fit:contain;
+           border-radius:50%;background:#111;padding:3px">`
+      : `<span style="color:#b8a078;font-size:17px;font-weight:bold">V</span>`;
+
+    const icon = L.divIcon({
+      className: 'vosco-showroom-marker',
+      html: `<div style="
+        width:34px;height:34px;
+        display:flex;align-items:center;justify-content:center;
+        background:#111;border:3px solid #b8a078;
+        border-radius:50%;box-shadow:0 2px 10px #0008;
+        box-sizing:border-box">
+        ${logoHtml}
+      </div>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 17],
+      popupAnchor: [0, -22]
+    });
+
+    L.marker([showroom.lat, showroom.lng], {
+      icon,
+      title: showroom.name,
+      zIndexOffset: 1000
+    })
+      .bindPopup(
+        `<div style="text-align:center">
+          <strong style="color:#b8a078">${showroom.name}</strong>
+          <div style="margin-top:5px">Polo permanente de atuação VOSCO</div>
+        </div>`
+      )
+      .addTo(clientShowroomLayer);
+  });
+}
 function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2})}
 function parseMoney(raw){if(raw===null||raw===undefined||String(raw).trim()==='')return '';let s=String(raw).trim().replace(/R\$/gi,'').replace(/\s/g,'');if(s.includes(',')&&s.includes('.')){s=s.replace(/\./g,'').replace(',','.')}else if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.')}else if((s.match(/\./g)||[]).length>1){s=s.replace(/\./g,'')}else if(/\.\d{3}$/.test(s)){s=s.replace('.','')}let n=Number(s);return Number.isFinite(n)&&n>=0?n:''}
 function popupProject(p){return `<div class="popup-title">${esc(p.name)}</div><div class="popup-muted">${esc(p.address||p.city)} • ${esc(p.city)} </div>${p.geocodePrecision==='city' ? '<div class="popup-muted">Localização aproximada — atualize o endereço para maior precisão.</div>' : ''}<div class="status"><i class="dot" style="background:${COLORS[p.status]||'#9298a0'}"></i>${esc(p.status)}</div>${p.start?`<div class="popup-muted">Início: ${esc(p.start)}</div>`:''}${p.value?`<div class="popup-muted">Valor do projeto: ${money(p.value)}</div>`:''}<button onclick="window.voscoEdit('${p.id}')" style="margin-top:8px;padding:6px 9px;border:1px solid #8e8063;background:#262a2e;color:#fff;border-radius:5px">Editar projeto</button>`}
@@ -875,6 +933,7 @@ if (document.body.classList.contains('client-presentation-mode')) {
     initClientPresentationMap();
   }
   refreshClientPresentation();
+  drawClientShowrooms();
   clientRenderCityControls();
 }
 }
@@ -961,6 +1020,7 @@ $('exitExecutiveBtn').onclick=()=>setExecutiveMode(false);
   
 let clientMap = null;
 let clientProjectLayer = null;
+let clientShowroomLayer = null;
 
 function initClientPresentationMap() {
   if (clientMap) return;
@@ -987,6 +1047,8 @@ function initClientPresentationMap() {
   ).addTo(clientMap);
 
   clientProjectLayer = L.layerGroup().addTo(clientMap);
+  clientShowroomLayer = L.layerGroup().addTo(clientMap);
+drawClientShowrooms();
 }
 
 function clientSafeProject(p) {
