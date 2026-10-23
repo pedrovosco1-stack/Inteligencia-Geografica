@@ -140,6 +140,37 @@ main{min-width:0;padding:22px 24px 28px}
   }
 }
 
+/* Apresentação para o cliente */
+body.client-presentation-mode #mainApp {
+  display: block !important;
+}
+
+body.client-presentation-mode #mainApp > .sidebar {
+  display: none !important;
+}
+
+body.client-presentation-mode #mainApp > main > *:not(#clientPresentationView) {
+  display: none !important;
+}
+
+body.client-presentation-mode #clientPresentationView {
+  display: block !important;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+body.client-presentation-mode #clientPresentationMap {
+  width: 100%;
+}
+
+body.client-presentation-mode #clientPresentationView .map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111111">
@@ -194,6 +225,7 @@ main{min-width:0;padding:22px 24px 28px}
   <button class="btn full" id="refreshBoundariesBtn">Atualizar limites municipais</button>
   <button class="btn full" id="resetViewBtn">Restaurar enquadramento do mapa</button>
   <button class="btn full" id="execModeBtn">Ativar modo executivo</button>
+  <button class="btn full" id="clientPresentationBtn">Apresentação para o Cliente</button>
   <button class="btn full" id="signOutBtn">Sair da conta</button>
   <div class="notice">Base compartilhada online. As alterações ficam disponíveis para os usuários autorizados. Exporte backups periodicamente.</div>
 </aside>
@@ -218,6 +250,40 @@ main{min-width:0;padding:22px 24px 28px}
       <span><i class="dot" style="background:#a38bdf"></i>Oportunidade potencial</span>
     </div>
   </section>
+  <section id="clientPresentationView" class="map-panel" style="display:none">
+  <div class="map-head">
+    <div>
+      <h3>Apresentação de presença regional</h3>
+      <p>Projetos realizados e presença territorial da VOSCO.</p>
+    </div>
+    <button class="btn" id="exitClientPresentationBtn" type="button">
+      ← Voltar ao painel
+    </button>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="label">Projetos cadastrados</div>
+      <div class="value" id="clientTotal">0</div>
+    </div>
+    <div class="metric">
+      <div class="label">Cidades com projetos</div>
+      <div class="value" id="clientCities">0</div>
+    </div>
+  </div>
+
+  <div id="clientPresentationMap" style="height:65vh;min-height:380px;border-radius:12px;overflow:hidden"></div>
+
+  <div class="metric" style="margin-top:16px">
+    <h3>Projetos por cidade</h3>
+    <div id="clientCitySummary"></div>
+  </div>
+
+  <div class="metric" style="margin-top:16px">
+    <h3>Projetos cadastrados</h3>
+    <div id="clientProjectList"></div>
+  </div>
+</section>
   <div class="below">
     <section class="card"><h3>Resumo por cidade</h3><div id="citySummary" class="region-list"><div class="empty">Cadastre projetos para visualizar a distribuição regional.</div></div></section>
     <section class="card"><h3>Expansão e projeções</h3><div id="growthSummary" class="region-list"></div><p class="notice">As projeções serão calculadas a partir de dados históricos suficientes. Não são exibidas estimativas artificiais quando a base está vazia.</p></section>
@@ -443,7 +509,17 @@ const stages=['Oportunidade','Em qualificação','Proposta / negociação','Fech
 if(years.length>=2){let y=years[years.length-1],prev=String(Number(y)-1),latest=projects.filter(p=>(p.start||'').startsWith(y)),prior=projects.filter(p=>(p.start||'').startsWith(prev)),a=latest.length,b=prior.length;growth.push(`<div class="region"><div><strong>Projetos iniciados em ${y}</strong><small>Comparação com ${prev}: ${b} projeto(s)</small></div><b>${a}</b></div>`);if(b>0){const rate=(a-b)/b;const projectedCount=Math.max(0,Math.round(a*(1+rate)));const latestValue=latest.reduce((sum,p)=>sum+(Number(p.value)||0),0),priorValue=prior.reduce((sum,p)=>sum+(Number(p.value)||0),0);const projectedValue=priorValue>0?Math.max(0,latestValue*(latestValue/priorValue)):0;growth.push(`<div class="region"><div><strong>Variação anual observada</strong><small>Comparação entre os dois anos mais recentes com dados</small></div><b>${rate>=0?'+':''}${Math.round(rate*100)}%</b></div>`);growth.push(`<div class="region"><div><strong>Expectativa para ${Number(y)+1}</strong><small>Projeção indicativa: ${projectedCount} projeto(s), usando a variação recente</small></div><b>${projectedCount}</b></div>`);if(priorValue>0&&latestValue>0)growth.push(`<div class="region"><div><strong>Valor projetado para ${Number(y)+1}</strong><small>Extrapolação simples da variação anual dos valores cadastrados; não é garantia de receita</small></div><b>${money(projectedValue)}</b></div>`)}else{growth.push(`<div class="region"><div><strong>Expectativa de crescimento</strong><small>O ano anterior não tem projetos cadastrados; não é possível calcular uma taxa percentual confiável.</small></div><b>—</b></div>`)}}
 let totalCities=new Set(projects.map(p=>(p.city||'').toLowerCase()).filter(Boolean)).size;if(years.length<2){growth.push(`<div class="region"><div><strong>Expansão geográfica</strong><small>${totalCities} cidade(s) com projetos registrados</small></div><b>${totalCities}</b></div>`);growth.push(`<div class="region"><div><strong>Expectativa de crescimento</strong><small>Cadastre datas de início em pelo menos dois anos diferentes para estimar uma tendência. Quanto mais histórico, mais útil será a projeção.</small></div><b>—</b></div>`)}$('growthSummary').innerHTML=growth.join('');
 $('projectTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><tr><th>Projeto</th><th>Cidade</th><th>Status</th><th>Início</th><th>Ações</th></tr></thead><tbody>${list.slice(0,100).map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.city)}</td><td><span class="status"><i class="dot" style="background:${COLORS[p.status]||'#9298a0'}"></i>${esc(p.status)}</span></td><td>${esc(p.start||'—')}</td><td><button class="btn small" onclick="window.voscoEdit('${p.id}')">Editar</button> <button class="btn small danger" onclick="window.voscoDelete('${p.id}')">Excluir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhum projeto cadastrado ainda. Use “Cadastrar projeto” ou importe uma planilha.</div>';
-drawMap();persistPrefs()}
+
+drawMap();
+persistPrefs();
+
+if (document.body.classList.contains('client-presentation-mode')) {
+  if (!clientMap) {
+    initClientPresentationMap();
+  }
+  refreshClientPresentation();
+}
+}
 function toast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3200)}
 function openForm(p=null){editingId=p?.id||null;$('projectForm').reset();$('formTitle').textContent=p?'Editar projeto':'Cadastrar projeto';if(p){$('fName').value=p.name||'';$('fCity').value=p.city||'';$('fStatus').value=p.status||'Planejado';$('fStage').value=p.stage||((p.status==='Finalizado')?'Fechado':'Oportunidade');$('fStart').value=p.start||'';$('fEnd').value=p.end||'';$('fSource').value=p.source||'';$('fValue').value=p.value!==''&&p.value!=null?money(p.value):'';$('fLat').value=p.lat??'';$('fLng').value=p.lng??'';$('fNotes').value=p.notes||'';$('fStreet').value=p.street||p.address||'';$('fNumber').value=p.number||'';$('fNeighborhood').value=p.neighborhood||'';$('fCep').value=p.cep||''}else{$('fCity').value='';$('fLat').value='';$('fLng').value='';$('fStage').value='Oportunidade'}$('projectModal').classList.add('open')}
 function closeForm(){$('projectModal').classList.remove('open')}
@@ -524,6 +600,190 @@ $('signOutBtn').onclick=async()=>{if(cloud)await cloud.auth.signOut();};
 function setExecutiveMode(on){document.body.classList.toggle('executive-mode',on);$('execModeBtn').textContent=on?'Sair do modo executivo':'Ativar modo executivo';$('exitExecutiveBtn').setAttribute('aria-label',on?'Voltar ao painel principal':'');setTimeout(()=>{map.invalidateSize(true);drawMap()},150)}
 $('execModeBtn').onclick=()=>setExecutiveMode(!document.body.classList.contains('executive-mode'));
 $('exitExecutiveBtn').onclick=()=>setExecutiveMode(false);
+  
+let clientMap = null;
+let clientProjectLayer = null;
+
+function initClientPresentationMap() {
+  if (clientMap) return;
+
+  clientMap = L.map('clientPresentationMap', {
+    zoomControl: true
+  }).setView([-23.27, -46.93], 8);
+
+  L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri'
+    }
+  ).addTo(clientMap);
+
+  L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    {
+      maxZoom: 19,
+      attribution: '',
+      pane: 'overlayPane'
+    }
+  ).addTo(clientMap);
+
+  clientProjectLayer = L.layerGroup().addTo(clientMap);
+}
+
+function clientSafeProject(p) {
+  return {
+    name: p.name || 'Projeto sem nome',
+    city: p.city || '',
+    pole: p.pole || '',
+    address: p.address || '',
+    street: p.street || '',
+    number: p.number || '',
+    neighborhood: p.neighborhood || '',
+    cep: p.cep || '',
+    lat: p.lat,
+    lng: p.lng
+  };
+}
+
+function clientProjectLocation(p) {
+  const address = [
+    p.street,
+    p.number,
+    p.neighborhood,
+    p.city,
+    p.cep
+  ].filter(Boolean).join(', ');
+
+  return address || p.address || p.city || 'Localização não informada';
+}
+
+function clientProjectPopup(p, approximate) {
+  return `
+    <div class="popup-title">${esc(p.name)}</div>
+    <div class="popup-muted">${esc(clientProjectLocation(p))}</div>
+    ${approximate
+      ? '<div class="popup-muted">Pino aproximado pela cidade cadastrada.</div>'
+      : '<div class="popup-muted">Localização cadastrada do projeto.</div>'}
+  `;
+}
+
+function refreshClientPresentation() {
+  if (!clientMap || !clientProjectLayer) return;
+
+  const safeProjects = projects.map(clientSafeProject);
+
+  $('clientTotal').textContent = safeProjects.length;
+  $('clientCities').textContent = new Set(
+    safeProjects.map(p => normName(p.city)).filter(Boolean)
+  ).size;
+
+  const cityCounts = {};
+  safeProjects.forEach(p => {
+    const city = p.city || 'Cidade não informada';
+    cityCounts[city] = (cityCounts[city] || 0) + 1;
+  });
+
+  const cityEntries = Object.entries(cityCounts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'));
+
+  $('clientCitySummary').innerHTML = cityEntries.length
+    ? cityEntries.map(([city, count]) => `
+        <div class="region">
+          <div><strong>${esc(city)}</strong></div>
+          <b>${count} projeto(s)</b>
+        </div>
+      `).join('')
+    : '<div class="empty">Nenhum projeto cadastrado.</div>';
+
+  $('clientProjectList').innerHTML = safeProjects.length
+    ? safeProjects.map(p => `
+        <div class="region">
+          <div>
+            <strong>${esc(p.name)}</strong>
+            <small>${esc(clientProjectLocation(p))}</small>
+          </div>
+        </div>
+      `).join('')
+    : '<div class="empty">Nenhum projeto cadastrado.</div>';
+
+  clientProjectLayer.clearLayers();
+  const coordinates = [];
+
+  safeProjects.forEach(p => {
+    const hasExactCoords =
+      p.lat !== '' && p.lat !== null && p.lat !== undefined &&
+      p.lng !== '' && p.lng !== null && p.lng !== undefined &&
+      Number.isFinite(Number(p.lat)) &&
+      Number.isFinite(Number(p.lng));
+
+    const xy = hasExactCoords
+      ? [Number(p.lat), Number(p.lng)]
+      : cityCoords(p.city, p.pole);
+
+    if (!xy || !Number.isFinite(Number(xy[0])) ||
+        !Number.isFinite(Number(xy[1]))) return;
+
+    coordinates.push(xy);
+
+    const marker = L.marker(xy, {
+      icon: markerIcon('#b8a078', true),
+      keyboard: true,
+      riseOnHover: true
+    });
+
+    marker.bindPopup(clientProjectPopup(p, !hasExactCoords), {
+      autoPan: true,
+      keepInView: true,
+      maxWidth: 320
+    });
+
+    marker.addTo(clientProjectLayer);
+  });
+
+  if (coordinates.length === 1) {
+    clientMap.setView(coordinates[0], 11);
+  } else if (coordinates.length > 1) {
+    const bounds = L.latLngBounds(coordinates);
+    if (bounds.isValid() && bounds.getNorthEast().distanceTo(bounds.getSouthWest()) > 0) {
+      clientMap.fitBounds(bounds, {
+        padding: [30, 30],
+        maxZoom: 11
+      });
+    } else {
+      clientMap.setView(coordinates[0], 11);
+    }
+  } else {
+    clientMap.setView([-23.27, -46.93], 8);
+  }
+}
+
+function showClientPresentation() {
+  document.body.classList.add('client-presentation-mode');
+
+  initClientPresentationMap();
+  refreshClientPresentation();
+
+  setTimeout(() => {
+    if (clientMap) clientMap.invalidateSize(true);
+  }, 200);
+}
+
+function hideClientPresentation() {
+  document.body.classList.remove('client-presentation-mode');
+
+  setTimeout(() => {
+    try {
+      map.invalidateSize(true);
+      drawMap();
+    } catch (e) {
+      console.warn('Não foi possível atualizar o mapa administrativo.', e);
+    }
+  }, 200);
+}
+
+$('clientPresentationBtn').onclick = showClientPresentation;
+$('exitClientPresentationBtn').onclick = hideClientPresentation;
 $('exportBtn').onclick=exportData;$('exportCsvBtn').onclick=exportCSV;$('refreshBoundariesBtn').onclick=()=>loadMunicipalBoundaries(true);$('importBtn').onclick=()=>$('fileInput').click();
 let pendingImport=[];
 function importKey(p){return (String(p.name||'').trim()+'|'+String(p.city||'').trim()).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR')}
