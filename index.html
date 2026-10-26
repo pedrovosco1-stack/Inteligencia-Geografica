@@ -490,6 +490,7 @@ body.client-presentation-mode #clientPresentationView .map-head {
   <button class="btn primary full" id="addBtn">＋ Cadastrar projeto</button>
   <div class="actions">
     <button class="btn" id="importBtn">Importar Excel / CSV / JSON</button>
+    <button class="btn full" id="executivePdfBtn">Exportar relatório executivo PDF</button>
     <button class="btn" id="exportBtn">Exportar dados</button>
   </div>
   <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/json,text/csv" hidden>
@@ -645,7 +646,8 @@ body.client-presentation-mode #clientPresentationView .map-head {
 <div id="toast"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
@@ -1426,7 +1428,230 @@ $('zoomBoth').onclick=()=>{$('pole').value='all';render();fitPole('all');persist
 $('resetViewBtn').onclick=()=>{fitPole($('pole').value);persistPrefs()};
 map.on('moveend zoomend',persistPrefs);
 $('projectModal').addEventListener('click',e=>{if(e.target===$('projectModal'))closeForm()});$('manageModal').addEventListener('click',e=>{if(e.target===$('manageModal'))$('manageModal').classList.remove('open')});$('importPreviewModal').addEventListener('click',e=>{if(e.target===$('importPreviewModal'))closeImportPreview()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForm();$('manageModal').classList.remove('open');closeImportPreview()}});
-initializeProjects();
+
+function exportExecutivePdf() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('Não foi possível carregar a biblioteca de PDF. Atualize a página e tente novamente.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const lista = Array.isArray(projects) ? projects : [];
+  const totalProjetos = lista.length;
+  const cidades = [...new Set(
+    lista.map(p => (p.city || '').trim()).filter(Boolean)
+  )];
+
+  const valorTotal = lista.reduce((total, p) => {
+    const valor = Number(p.value);
+    return total + (Number.isFinite(valor) ? valor : 0);
+  }, 0);
+
+  const porCidade = {};
+  lista.forEach(p => {
+    const cidade = (p.city || 'Não informada').trim();
+    if (!porCidade[cidade]) {
+      porCidade[cidade] = { quantidade: 0, valor: 0 };
+    }
+
+    porCidade[cidade].quantidade++;
+
+    const valor = Number(p.value);
+    if (Number.isFinite(valor)) {
+      porCidade[cidade].valor += valor;
+    }
+  });
+
+  const ranking = Object.entries(porCidade)
+    .sort((a, b) =>
+      b[1].quantidade - a[1].quantidade ||
+      b[1].valor - a[1].valor
+    );
+
+  const data = new Date().toLocaleDateString('pt-BR');
+  const moeda = valor => Number(valor || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
+
+  const largura = doc.internal.pageSize.getWidth();
+  const altura = doc.internal.pageSize.getHeight();
+  const dourado = [184, 160, 120];
+  const escuro = [25, 28, 32];
+  const cinza = [95, 99, 104];
+
+  function cabecalho(titulo) {
+    doc.setFillColor(...escuro);
+    doc.rect(0, 0, largura, 27, 'F');
+
+    doc.setTextColor(...dourado);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(19);
+    doc.text('VOSCO', 14, 13);
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.text(titulo, 14, 21);
+
+    doc.setTextColor(...cinza);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('Gerado em ' + data, largura - 14, 14, {
+      align: 'right'
+    });
+  }
+
+  function rodape(numero) {
+    doc.setDrawColor(...dourado);
+    doc.line(14, altura - 12, largura - 14, altura - 12);
+
+    doc.setTextColor(...cinza);
+    doc.setFontSize(8);
+    doc.text(
+      'VOSCO | Inteligência Geográfica',
+      14,
+      altura - 7
+    );
+    doc.text('Página ' + numero, largura - 14, altura - 7, {
+      align: 'right'
+    });
+  }
+
+  // Página 1: visão executiva
+  cabecalho('RELATÓRIO EXECUTIVO');
+
+  doc.setTextColor(...escuro);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Visão geral da carteira de projetos', 14, 40);
+
+  const indicadores = [
+    { titulo: 'PROJETOS CADASTRADOS', valor: String(totalProjetos) },
+    { titulo: 'CIDADES ALCANÇADAS', valor: String(cidades.length) },
+    { titulo: 'VALOR TOTAL REGISTRADO', valor: moeda(valorTotal) }
+  ];
+
+  const cardY = 49;
+  const cardGap = 6;
+  const cardW = (largura - 28 - cardGap * 2) / 3;
+
+  indicadores.forEach((item, i) => {
+    const x = 14 + i * (cardW + cardGap);
+
+    doc.setDrawColor(220, 220, 220);
+    doc.setFillColor(248, 247, 244);
+    doc.roundedRect(x, cardY, cardW, 25, 2, 2, 'FD');
+
+    doc.setTextColor(...cinza);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(item.titulo, x + 5, cardY + 8);
+
+    doc.setTextColor(...escuro);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(i === 2 ? 14 : 18);
+    doc.text(item.valor, x + 5, cardY + 19);
+  });
+
+  doc.setTextColor(...escuro);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Distribuição por cidade', 14, 88);
+
+  let y = 97;
+  doc.setFillColor(...escuro);
+  doc.rect(14, y - 5, largura - 28, 9, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.text('Cidade', 18, y);
+  doc.text('Projetos', largura - 105, y);
+  doc.text('Valor registrado', largura - 18, y, {
+    align: 'right'
+  });
+
+  y += 10;
+  doc.setFont('helvetica', 'normal');
+
+  ranking.forEach(([cidade, dados]) => {
+    if (y > altura - 22) {
+      rodape(doc.internal.getNumberOfPages());
+      doc.addPage();
+      cabecalho('RELATÓRIO EXECUTIVO — CONTINUAÇÃO');
+      y = 40;
+
+      doc.setFillColor(...escuro);
+      doc.rect(14, y - 5, largura - 28, 9, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('Cidade', 18, y);
+      doc.text('Projetos', largura - 105, y);
+      doc.text('Valor registrado', largura - 18, y, {
+        align: 'right'
+      });
+      y += 10;
+      doc.setFont('helvetica', 'normal');
+    }
+
+    doc.setTextColor(...escuro);
+    doc.setFontSize(9);
+
+    const nomeCidade = doc.splitTextToSize(cidade, 150)[0];
+    doc.text(nomeCidade, 18, y);
+    doc.text(String(dados.quantidade), largura - 105, y);
+    doc.text(moeda(dados.valor), largura - 18, y, {
+      align: 'right'
+    });
+
+    doc.setDrawColor(230, 230, 230);
+    doc.line(14, y + 3, largura - 14, y + 3);
+    y += 9;
+  });
+
+  rodape(doc.internal.getNumberOfPages());
+
+  // Página final: observações e critérios
+  doc.addPage();
+  cabecalho('CRITÉRIOS DO RELATÓRIO');
+
+  doc.setTextColor(...escuro);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Notas para interpretação', 14, 43);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+
+  const notas = [
+    '• Os indicadores consideram os projetos cadastrados na base disponível no momento da exportação.',
+    '• O ranking por cidade considera a quantidade de projetos; em caso de empate, prioriza o maior valor registrado.',
+    '• O valor total soma os valores numéricos registrados nos projetos. Registros sem valor numérico não acrescentam valor ao total.',
+    '• Os valores apresentados representam os projetos cadastrados, não uma previsão de vendas ou de oportunidades futuras.',
+    '• Este documento é uma fotografia da base no momento da geração e não substitui a análise comercial detalhada.'
+  ];
+
+  let notaY = 56;
+  notas.forEach(nota => {
+    const linhas = doc.splitTextToSize(nota, largura - 34);
+    doc.text(linhas, 17, notaY);
+    notaY += linhas.length * 6 + 7;
+  });
+
+  rodape(doc.internal.getNumberOfPages());
+
+  doc.save('VOSCO_Relatorio_Executivo.pdf');
+}
+
+$('executivePdfBtn').onclick = exportExecutivePdf;
+  
+  initializeProjects();
 })();
   // Registro do aplicativo instalável VOSCO
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
