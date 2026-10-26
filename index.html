@@ -388,6 +388,7 @@ body.client-presentation-mode #clientPresentationMap {
   height: 78vh !important;
   min-height: 560px;
   max-height: 900px;
+}
 
 body.client-presentation-mode #clientPresentationView .metrics .metric .value {
   font-size: 24px;
@@ -436,6 +437,174 @@ body.client-presentation-mode #clientPresentationView .map-head {
   text-align: center;
   justify-self: stretch;
 }
+  
+/* Indicadores premium da apresentação para o cliente */
+body.client-presentation-mode #clientPresentationView > .metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 20px 0 26px;
+}
+
+body.client-presentation-mode #clientPresentationView > .metrics .metric {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 24px 26px;
+  overflow: hidden;
+  border: 1px solid rgba(184, 160, 120, 0.38);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #191c20, #111214);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+body.client-presentation-mode #clientPresentationView > .metrics .metric::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: #b8a078;
+}
+
+body.client-presentation-mode #clientPresentationView > .metrics .metric .label {
+  color: #c4b49b;
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+
+body.client-presentation-mode #clientPresentationView > .metrics .metric .value {
+  margin-top: 10px;
+  color: #ffffff;
+  font-size: 32px !important;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  body.client-presentation-mode #clientPresentationView > .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Acabamento premium do mapa na apresentação */
+body.client-presentation-mode #clientPresentationMap {
+  position: relative;
+  box-sizing: border-box;
+  border: 1px solid rgba(184, 160, 120, 0.48);
+  border-radius: 14px !important;
+  overflow: hidden;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(184, 160, 120, 0.08);
+  background: #191c20;
+}
+
+body.client-presentation-mode #clientPresentationView .map-head {
+  margin-bottom: 18px;
+}
+
+body.client-presentation-mode #clientPresentationView .map-head h3 {
+  color: #ffffff;
+  letter-spacing: 0.2px;
+}
+
+body.client-presentation-mode #clientPresentationView .map-head p {
+  color: #b9b9b9;
+  line-height: 1.6;
+}
+
+body.client-presentation-mode #clientPresentationMap .leaflet-control-zoom {
+  border: 1px solid rgba(184, 160, 120, 0.65);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+body.client-presentation-mode #clientPresentationMap .leaflet-control-zoom a {
+  color: #25221d;
+  background: #f4eee5;
+}
+
+body.client-presentation-mode #clientPresentationMap .leaflet-control-zoom a:hover {
+  background: #b8a078;
+}
+
+/* Resumo por cidade — apresentação VOSCO */
+body.client-presentation-mode #clientPresentationView > .metric:has(#clientCitySummary) {
+  margin-top: 26px !important;
+  padding: 24px;
+  border: 1px solid rgba(184, 160, 120, 0.35);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #191c20, #121315);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+body.client-presentation-mode #clientPresentationView > .metric:has(#clientCitySummary) h3 {
+  margin: 0 0 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(184, 160, 120, 0.35);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+body.client-presentation-mode #clientCitySummary {
+  color: #e8e5df;
+  line-height: 1.65;
+}
+
+body.client-presentation-mode #clientCitySummary table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+body.client-presentation-mode #clientCitySummary th {
+  padding: 13px 14px;
+  background: #222326;
+  color: #cdb58e;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+body.client-presentation-mode #clientCitySummary td {
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e8e5df;
+}
+
+body.client-presentation-mode #clientCitySummary tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+body.client-presentation-mode #clientCitySummary tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 600px) {
+  body.client-presentation-mode #clientPresentationView > .metric:has(#clientCitySummary) {
+    padding: 16px;
+  }
+
+  body.client-presentation-mode #clientCitySummary {
+    overflow-x: auto;
+  }
+
+  body.client-presentation-mode #clientCitySummary th,
+  body.client-presentation-mode #clientCitySummary td {
+    padding: 10px 8px;
+  }
+}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111111">
@@ -533,6 +702,57 @@ body.client-presentation-mode #clientPresentationView .map-head {
     </div>
   </section>
   <section id="clientPresentationView" class="map-panel" style="display:none">
+    
+<div class="client-brand-hero" style="
+  position:relative;
+  overflow:hidden;
+  box-sizing:border-box;
+  padding:32px 36px;
+  margin-bottom:24px;
+  border:1px solid rgba(184,160,120,.42);
+  border-radius:16px;
+  background:linear-gradient(120deg,#101214 0%,#1b1c1d 65%,#29241d 100%);
+">
+  <div style="
+    color:#b8a078;
+    font-size:11px;
+    letter-spacing:4px;
+    text-transform:uppercase;
+    margin-bottom:14px;
+  ">VOSCO · INTELIGÊNCIA GEOGRÁFICA</div>
+
+  <h2 style="
+    margin:0 0 12px;
+    max-width:720px;
+    color:#fff;
+    font-size:clamp(25px,3vw,38px);
+    line-height:1.2;
+    font-weight:500;
+  ">Presença regional. Excelência em cada projeto.</h2>
+
+  <p style="
+    max-width:650px;
+    margin:0 0 24px;
+    color:#c4c4c4;
+    font-size:15px;
+    line-height:1.7;
+  ">Uma visão da atuação territorial da VOSCO, reunindo projetos e presença regional em uma experiência visual clara e sofisticada.</p>
+
+  <button
+    class="btn"
+    type="button"
+    onclick="document.getElementById('clientPresentationMap').scrollIntoView({behavior:'smooth',block:'start'})"
+    style="
+      padding:12px 20px;
+      border:1px solid #b8a078;
+      border-radius:6px;
+      background:#b8a078;
+      color:#101214;
+      font-weight:600;
+    "
+  >Explorar presença regional →</button>
+</div>
+
   <div class="map-head">
     <div>
       <h3>Apresentação de presença regional</h3>
