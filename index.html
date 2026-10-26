@@ -427,7 +427,15 @@ body.client-presentation-mode #clientPresentationView .map-head {
 #cloudGate .password-toggle:hover {
   color: #f0dfbd;
 }
-
+#executivePdfBtn {
+  grid-column: 1 / -1;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  margin: 8px 0;
+  text-align: center;
+  justify-self: stretch;
+}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111111">
@@ -490,9 +498,9 @@ body.client-presentation-mode #clientPresentationView .map-head {
   <button class="btn primary full" id="addBtn">＋ Cadastrar projeto</button>
   <div class="actions">
     <button class="btn" id="importBtn">Importar Excel / CSV / JSON</button>
-    <button class="btn full" id="executivePdfBtn">Exportar relatório executivo PDF</button>
     <button class="btn" id="exportBtn">Exportar dados</button>
   </div>
+      <button class="btn full" id="executivePdfBtn">Exportar relatório executivo PDF</button>
   <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/json,text/csv" hidden>
   <button class="btn full" id="exportCsvBtn">Exportar planilha CSV</button>
   <button class="btn full" id="manageBtn">Ver / editar projetos</button>
