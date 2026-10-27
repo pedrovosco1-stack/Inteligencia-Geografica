@@ -1252,7 +1252,33 @@ function normalizeDate(s){if(!s)return '';if(/^\d{4}-\d{2}-\d{2}$/.test(s))retur
 $('addBtn').onclick=()=>openForm();$('closeModal').onclick=closeForm;$('cancelModal').onclick=closeForm;
 $('manageBtn').onclick=manage;$('closeManage').onclick=$('closeManage2').onclick=()=>$('manageModal').classList.remove('open');
 $('signOutBtn').onclick=async()=>{if(cloud)await cloud.auth.signOut();};
-function setExecutiveMode(on){document.body.classList.toggle('executive-mode',on);$('execModeBtn').textContent=on?'Sair do modo executivo':'Ativar modo executivo';$('exitExecutiveBtn').setAttribute('aria-label',on?'Voltar ao painel principal':'');setTimeout(()=>{map.invalidateSize(true);drawMap();drawShowrooms()},150)}
+  function resetPageScroll() {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+function setExecutiveMode(on) {
+  document.body.classList.toggle('executive-mode', on);
+
+  $('execModeBtn').textContent = on
+    ? 'Sair do modo executivo'
+    : 'Ativar modo executivo';
+
+  $('exitExecutiveBtn').setAttribute(
+    'aria-label',
+    on ? 'Voltar ao painel principal' : ''
+  );
+
+  if (on) resetPageScroll();
+
+  setTimeout(() => {
+    map.invalidateSize(true);
+    drawMap();
+    drawShowrooms();
+
+    if (on) resetPageScroll();
+  }, 150);
+}
 $('execModeBtn').onclick=()=>setExecutiveMode(!document.body.classList.contains('executive-mode'));
 $('exitExecutiveBtn').onclick=()=>setExecutiveMode(false);
   
@@ -1544,15 +1570,17 @@ function clientRenderCityControls() {
 function showClientPresentation() {
   document.body.classList.add('client-presentation-mode');
 
+  resetPageScroll();
+
   initClientPresentationMap();
   refreshClientPresentation();
   clientRenderCityControls();
 
   setTimeout(() => {
     if (clientMap) clientMap.invalidateSize(true);
+    resetPageScroll();
   }, 200);
 }
-
 function hideClientPresentation() {
   document.body.classList.remove('client-presentation-mode');
 
