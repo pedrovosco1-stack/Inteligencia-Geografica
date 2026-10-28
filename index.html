@@ -775,7 +775,38 @@ body.client-presentation-mode #clientProjectList .region small {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* Correção de largura da lista de projetos */
 
+body.client-presentation-mode #clientPresentationView .metric:has(#clientProjectList) {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  grid-column: 1 / -1 !important;
+  flex: 1 1 100% !important;
+}
+
+body.client-presentation-mode #clientProjectList {
+  display: grid !important;
+  width: 100% !important;
+  max-width: none !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  body.client-presentation-mode #clientProjectList {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  body.client-presentation-mode #clientProjectList {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111111">
@@ -1046,7 +1077,7 @@ body.client-presentation-mode #clientProjectList .region small {
         <h2 style="font-size:19px; font-weight:500; margin:0;">Não damos espaços para o desânimo e negatividade</h2>
       </article>
 
-      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px; grid-column:1/-1;">
+      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px;">
         <div style="color:#b8a078; font-size:13px; letter-spacing:2px; margin-bottom:14px;">07</div>
         <h2 style="font-size:19px; font-weight:500; margin:0;">A nossa dedicação e empenho reflete na alta e exigente qualidade Vosco</h2>
       </article>
