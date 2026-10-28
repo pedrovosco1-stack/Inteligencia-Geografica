@@ -75,7 +75,7 @@ main{min-width:0;padding:22px 24px 28px}
   z-index: 5000;
   background: #0b0c0d;
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(400px, 0.9fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
   padding: 0;
   overflow-y: auto;
   color: #f5f1e9;
@@ -86,10 +86,10 @@ main{min-width:0;padding:22px 24px 28px}
   box-sizing: border-box;
   min-width: 0;
   min-height: 100%;
-  padding: clamp(36px, 6vw, 90px);
+  padding: clamp(36px, 5vw, 76px);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   overflow: hidden;
   background:
     linear-gradient(
@@ -101,12 +101,24 @@ main{min-width:0;padding:22px 24px 28px}
 }
 
 #cloudGate .gate-visual-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(11, 12, 13, 0.20),
+    rgba(11, 12, 13, 0.05)
+  );
+  pointer-events: none;
+}
+
 #cloudGate .gate-visual-content {
   position: relative;
   z-index: 1;
-  max-width: 590px;
+  width: 100%;
+  max-width: 680px;
+  margin-left: 0;
+  text-align: left;
 }
-
 #cloudGate .gate-eyebrow {
   display: block;
   margin-bottom: 24px;
@@ -163,7 +175,7 @@ main{min-width:0;padding:22px 24px 28px}
   border: 0;
   border-left: 1px solid #b8a07855;
   border-radius: 0;
-  padding: clamp(32px, 6vw, 90px);
+  padding: clamp(28px, 4vw, 64px);
   box-shadow: none;
   display: flex;
   flex-direction: column;
