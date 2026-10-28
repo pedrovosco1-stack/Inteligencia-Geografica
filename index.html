@@ -605,6 +605,21 @@ body.client-presentation-mode #clientCitySummary tr:last-child td {
   }
 }
 
+body.culture-vosco-mode #mainApp > .sidebar {
+  display: none !important;
+}
+
+body.culture-vosco-mode #mainApp > main > *:not(#culturaVoscoView) {
+  display: none !important;
+}
+
+body.culture-vosco-mode #culturaVoscoView {
+  display: block !important;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111111">
@@ -678,6 +693,7 @@ body.client-presentation-mode #clientCitySummary tr:last-child td {
   <button class="btn full" id="resetViewBtn">Restaurar enquadramento do mapa</button>
   <button class="btn full" id="execModeBtn">Ativar modo executivo</button>
   <button class="btn full" id="clientPresentationBtn">Apresentação para o Cliente</button>
+  <button class="btn full" id="culturaVoscoBtn">Cultura VOSCO</button>
   <button class="btn full" id="signOutBtn">Sair da conta</button>
   <div class="notice">Base compartilhada online. As alterações ficam disponíveis para os usuários autorizados. Exporte backups periodicamente.</div>
 </aside>
@@ -820,6 +836,81 @@ body.client-presentation-mode #clientCitySummary tr:last-child td {
   <div class="metric" style="margin-top:16px">
     <h3>Projetos cadastrados</h3>
     <div id="clientProjectList"></div>
+  </div>
+</section>
+  
+<section id="culturaVoscoView" style="display:none; width:100%; box-sizing:border-box; padding:32px 24px; color:#f3f0e9;">
+  <div style="max-width:1100px; margin:0 auto;">
+
+    <button class="btn" id="exitCulturaVoscoBtn" style="margin-bottom:28px;">
+      ← Voltar ao painel
+    </button>
+
+    <div style="text-align:center; padding:30px 10px 36px;">
+      <div style="color:#b8a078; letter-spacing:5px; font-size:12px; text-transform:uppercase; margin-bottom:16px;">
+        VOSCO
+      </div>
+      <h1 style="font-size:clamp(30px,5vw,48px); font-weight:400; margin:0 0 14px;">
+        Nossa Cultura, Nossa Essência
+      </h1>
+      <p style="color:#b8a078; font-size:15px; letter-spacing:1px; margin:0;">
+        Os princípios que orientam quem somos e tudo o que fazemos.
+      </p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;">
+
+      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px;">
+        <div style="color:#b8a078; font-size:13px; letter-spacing:2px; margin-bottom:14px;">01</div>
+        <h2 style="font-size:19px; font-weight:500; margin:0;">Deus no controle de tudo</h2>
+      </article>
+
+      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px;">
+        <div style="color:#b8a078; font-size:13px; letter-spacing:2px; margin-bottom:14px;">02</div>
+        <h2 style="font-size:19px; font-weight:500; margin:0;">Cliente em primeiro lugar</h2>
+      </article>
+
+      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px;">
+        <div style="color:#b8a078; font-size:13px; letter-spacing:2px; margin-bottom:14px;">03</div>
+        <h2 style="font-size:19px; font-weight:500; margin:0;">Realizamos sonhos para que os nossos sejam realizados</h2>
+      </article>
+
+      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px;">
+        <div style="color:#b8a078; font-size:13px; letter-spacing:2px; margin-bottom:14px;">04</div>
+        <h2 style="font-size:19px; font-weight:500; margin:0;">Tratamos as pessoas como gostaríamos de ser tratados</h2>
+      </article>
+
+      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px;">
+        <div style="color:#b8a078; font-size:13px; letter-spacing:2px; margin-bottom:14px;">05</div>
+        <h2 style="font-size:19px; font-weight:500; margin:0;">Vendemos a verdade</h2>
+      </article>
+
+      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px;">
+        <div style="color:#b8a078; font-size:13px; letter-spacing:2px; margin-bottom:14px;">06</div>
+        <h2 style="font-size:19px; font-weight:500; margin:0;">Não damos espaços para o desânimo e negatividade</h2>
+      </article>
+
+      <article style="background:#191c20; border:1px solid #38332b; border-radius:12px; padding:24px; grid-column:1/-1;">
+        <div style="color:#b8a078; font-size:13px; letter-spacing:2px; margin-bottom:14px;">07</div>
+        <h2 style="font-size:19px; font-weight:500; margin:0;">A nossa dedicação e empenho reflete na alta e exigente qualidade Vosco</h2>
+      </article>
+
+    </div>
+
+    <div style="margin-top:28px; padding:30px; background:#191c20; border:1px solid #b8a078; border-radius:12px;">
+      <div style="color:#b8a078; font-size:12px; letter-spacing:3px; text-transform:uppercase; margin-bottom:18px;">
+        Nosso manifesto
+      </div>
+      <p style="font-size:17px; line-height:1.9; margin:0;">
+        Somos movidos por fazer sempre o melhor e comprometidos com a verdade, colocando o cliente em primeiro lugar e transformando sonhos em realidade.
+        Valorizamos a reciprocidade, tratando cada pessoa como gostaríamos de ser tratados, e acreditamos que a atitude positiva, dedicação incansável e a busca incessante pela qualidade nos conduzem ao sucesso coletivo.
+      </p>
+    </div>
+
+    <div style="text-align:center; color:#8f8b83; font-size:12px; margin-top:30px; letter-spacing:1px;">
+      VOSCO · NOSSA CULTURA, NOSSA ESSÊNCIA
+    </div>
+
   </div>
 </section>
   <div class="below">
@@ -1606,6 +1697,20 @@ function hideClientPresentation() {
 }
 
 $('clientPresentationBtn').onclick = showClientPresentation;
+
+function showCulturaVosco() {
+  document.body.classList.add('culture-vosco-mode');
+  $('culturaVoscoView').style.display = 'block';
+  resetPageScroll();
+}
+
+function hideCulturaVosco() {
+  document.body.classList.remove('culture-vosco-mode');
+  $('culturaVoscoView').style.display = 'none';
+}
+
+$('culturaVoscoBtn').onclick = showCulturaVosco;
+$('exitCulturaVoscoBtn').onclick = hideCulturaVosco;
 $('exitClientPresentationBtn').onclick = hideClientPresentation;
 $('exportBtn').onclick=exportData;$('exportCsvBtn').onclick=exportCSV;$('refreshBoundariesBtn').onclick=()=>loadMunicipalBoundaries(true);$('importBtn').onclick=()=>$('fileInput').click();
 let pendingImport=[];
