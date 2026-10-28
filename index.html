@@ -83,28 +83,24 @@ main{min-width:0;padding:22px 24px 28px}
 
 #cloudGate .gate-visual {
   position: relative;
+  box-sizing: border-box;
   min-width: 0;
-  min-height: 100vh;
+  min-height: 100%;
+  padding: clamp(36px, 6vw, 90px);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding: clamp(32px, 5vw, 76px);
-  box-sizing: border-box;
+  justify-content: center;
   overflow: hidden;
   background:
-    linear-gradient(180deg, #08090930 0%, #08090940 35%, #080909f2 100%),
-    url("https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=85")
-    center / cover no-repeat,
-    #151515;
+    linear-gradient(
+      90deg,
+      rgba(11, 12, 13, 0.78),
+      rgba(11, 12, 13, 0.28)
+    ),
+    url("projetovosco.jpg") center center / cover no-repeat;
 }
 
 #cloudGate .gate-visual-overlay {
-  position: absolute;
-  inset: 18px;
-  border: 1px solid #b8a07875;
-  pointer-events: none;
-}
-
 #cloudGate .gate-visual-content {
   position: relative;
   z-index: 1;
