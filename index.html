@@ -620,6 +620,87 @@ body.culture-vosco-mode #culturaVoscoView {
   box-sizing: border-box;
 }
 
+/* Cultura VOSCO: ocupar a tela inteira */
+body.culture-vosco-mode {
+  overflow-x: hidden;
+}
+
+body.culture-vosco-mode #mainApp {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.culture-vosco-mode #mainApp > main {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.culture-vosco-mode #culturaVoscoView {
+  display: block !important;
+  width: 100% !important;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 36px clamp(18px, 4vw, 64px) !important;
+}
+
+body.culture-vosco-mode #culturaVoscoView > div {
+  width: 100%;
+  max-width: 1500px !important;
+  margin: 0 auto !important;
+}
+
+body.culture-vosco-mode #culturaVoscoView h1 {
+  text-align: center;
+}
+
+body.culture-vosco-mode #culturaVoscoView article {
+  min-height: 115px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+body.culture-vosco-mode #culturaVoscoView article:hover {
+  border-color: #b8a078 !important;
+  transform: translateY(-3px);
+}
+
+body.culture-vosco-mode #culturaVoscoView article h2 {
+  line-height: 1.6;
+}
+
+@media (min-width: 1100px) {
+  body.culture-vosco-mode #culturaVoscoView > div > div:nth-of-type(2) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  body.culture-vosco-mode #culturaVoscoView {
+    padding: 20px 14px !important;
+  }
+
+  body.culture-vosco-mode #culturaVoscoView > div > div:nth-of-type(2) {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.culture-vosco-mode #culturaVoscoView article {
+    grid-column: auto !important;
+  }
+
+  body.culture-vosco-mode #culturaVoscoView > div > div:last-child {
+    line-height: 1.8;
+  }
+}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111111">
