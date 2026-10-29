@@ -885,8 +885,6 @@ body.client-presentation-mode #clientProjectList {
   <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/json,text/csv" hidden>
   <button class="btn full" id="exportCsvBtn">Exportar planilha CSV</button>
   <button class="btn full" id="manageBtn">Ver / editar projetos</button>
-  <button class="btn full" id="refreshBoundariesBtn">Atualizar limites municipais</button>
-  <button class="btn full" id="resetViewBtn">Restaurar enquadramento do mapa</button>
   <button class="btn full" id="execModeBtn">Ativar modo executivo</button>
   <button class="btn full" id="clientPresentationBtn">Apresentação para o Cliente</button>
   <button class="btn full" id="culturaVoscoBtn">Cultura VOSCO</button>
@@ -903,8 +901,13 @@ body.client-presentation-mode #clientProjectList {
   </section>
   <section class="map-panel">
     <div class="map-head"><div><h3>Mapa geográfico de projetos</h3><p>Mapa de ruas e avenidas de São Paulo e região. Cada marcador representa o endereço cadastrado; a cor indica o status do projeto.</p></div>
-      <div class="map-tools"><button class="btn" id="zoomSP">São Paulo</button><button class="btn" id="zoomInd">Indaiatuba</button><button class="btn" id="zoomBoth">Ver os dois polos</button></div>
-    </div>
+     <div class="map-tools">
+  <button class="btn" id="zoomSP">São Paulo</button>
+  <button class="btn" id="zoomInd">Indaiatuba</button>
+  <button class="btn" id="zoomBoth">Ver os dois polos</button>
+  <button class="btn" id="resetViewBtn">Restaurar enquadramento do mapa</button>
+  <button class="btn" id="refreshBoundariesBtn">Atualizar limites municipais</button>
+</div>
     <div id="map"></div>
     <div class="legend">
       <span><i class="dot" style="background:#24a879"></i>Finalizado</span>
