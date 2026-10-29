@@ -2054,7 +2054,20 @@ $('zoomInd').onclick=()=>{
   });
   persistPrefs();
 };
+$('zoomBoth').onclick=()=>{
+  $('pole').value='all';
+  render();
 
+  map.flyToBounds([
+    [-23.086668525591502, -47.1986368274918],
+    [-23.54221116991032, -46.567856145333046]
+  ], {
+    padding: [30, 30],
+    duration: 1.5
+  });
+
+  persistPrefs();
+};
 $('zoomFactory').onclick=()=>{
   map.flyTo([-29.592961607740598, -51.12442806003702], 16, {
     animate: true,
