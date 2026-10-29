@@ -910,8 +910,63 @@ body.client-presentation-mode #clientProjectList {
 </div>
 
 <button class="btn primary full" type="submit" style="margin-top:16px">Entrar</button>
-</form>
-  <div id="cloudGateError" class="gate-error"></div>
+     
+<div style="text-align:right; margin-top:10px;">
+  <button
+    type="button"
+    id="forgotPasswordBtn"
+    style="background:none; border:none; color:#c6a56b; cursor:pointer; font-size:13px; padding:4px 0;"
+  >
+    Esqueci minha senha
+  </button>
+</div>
+     </form>
+
+<div id="resetPasswordPanel" style="display:none;">
+  <h2>Redefinir senha</h2>
+  <p>Digite sua nova senha para acessar o painel.</p>
+
+  <form id="resetPasswordForm">
+    <label for="newPassword">Nova senha</label>
+    <input
+      id="newPassword"
+      type="password"
+      autocomplete="new-password"
+      required
+      minlength="8"
+      placeholder="Digite a nova senha"
+    >
+
+    <label for="confirmNewPassword">Confirmar nova senha</label>
+    <input
+      id="confirmNewPassword"
+      type="password"
+      autocomplete="new-password"
+      required
+      minlength="8"
+      placeholder="Repita a nova senha"
+    >
+
+    <button
+      class="btn primary full"
+      type="submit"
+      style="margin-top:16px"
+    >
+      Salvar nova senha
+    </button>
+
+    <button
+      type="button"
+      id="cancelResetPassword"
+      class="btn full"
+      style="margin-top:8px"
+    >
+      Voltar ao login
+    </button>
+  </form>
+</div>
+
+<div id="cloudGateError" class="gate-error"></div>
     <p style="font-size:11px">Acesso restrito aos dois usuários cadastrados no sistema. Se ainda não recebeu acesso, solicite ao administrador.</p>
   </div>
 </div>
@@ -1311,9 +1366,97 @@ let municipalFeatures=[]; let boundariesState='loading';
 function loadProjects(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){return []}}
 function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(projects));render();if(!cloud||!cloudReady){$('saveState').textContent='● Sem conexão com a base compartilhada';return} $('saveState').textContent='● Sincronizando…';const snapshot=projects.map(p=>({id:String(p.id),data:p,updated_at:new Date().toISOString(),updated_by:cloudUser.id}));cloudSaveQueue=cloudSaveQueue.then(async()=>{if(snapshot.length){const {error}=await cloud.from('vosco_projects').upsert(snapshot,{onConflict:'id'});if(error)throw error} $('saveState').textContent='● Sincronizado com a equipe'}).catch(err=>{$('saveState').textContent='● Falha na sincronização';toast('Não foi possível sincronizar. Confira a conexão e tente novamente.');console.error(err)});}catch(e){$('saveState').textContent='● Falha ao salvar';alert('Não foi possível salvar os dados localmente. Exporte um backup.');console.error(e)}}
 async function loadCloudProjects(){const {data,error}=await cloud.from('vosco_projects').select('id,data,updated_at').order('updated_at',{ascending:false});if(error)throw error;projects=(data||[]).map(row=>({...row.data,id:row.id}));localStorage.setItem(STORAGE_KEY,JSON.stringify(projects));render();$('saveState').textContent='● Base compartilhada conectada'}
-async function initializeProjects(){if(!CLOUD_CONFIGURED){$('cloudGateError').textContent='O painel ainda precisa ser conectado ao projeto Supabase. Consulte o guia de implantação incluído no pacote.';$('cloudLoginForm').querySelector('button').disabled=true;return}try{cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data:{session}}=await cloud.auth.getSession();if(session){cloudUser=session.user;await enterCloudApp()}cloud.auth.onAuthStateChange(async(event,session)=>{if(event==='SIGNED_IN'&&session){cloudUser=session.user;setTimeout(()=>enterCloudApp(),0)}if(event==='SIGNED_OUT'){cloudReady=false;cloudUser=null;$('mainApp').style.display='none';$('cloudGate').style.display='grid';$('cloudGateError').textContent='';$('cloudPassword').value=''}})}catch(e){$('cloudGateError').textContent='Não foi possível conectar ao serviço. Verifique a configuração.';console.error(e)}}
+async function initializeProjects(){if(!CLOUD_CONFIGURED){$('cloudGateError').textContent='O painel ainda precisa ser conectado ao projeto Supabase. Consulte o guia de implantação incluído no pacote.';$('cloudLoginForm').querySelector('button').disabled=true;return}try{cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data:{session}}=await cloud.auth.getSession();if(session){cloudUser=session.user;await enterCloudApp()}cloud.auth.onAuthStateChange(async(event,session)=>{if (event === 'PASSWORD_RECOVERY') {
+  $('mainApp').style.display = 'none';
+  $('cloudGate').style.display = 'grid';
+  $('cloudLoginForm').style.display = 'none';
+  $('resetPasswordPanel').style.display = 'block';
+  $('cloudGate').querySelector('h2').style.display = 'none';
+  $('cloudGateError').textContent = 'Defina sua nova senha.';
+}if(event==='SIGNED_IN'&&session){cloudUser=session.user;setTimeout(()=>enterCloudApp(),0)}if(event==='SIGNED_OUT'){cloudReady=false;cloudUser=null;$('mainApp').style.display='none';$('cloudGate').style.display='grid';$('cloudGateError').textContent='';$('cloudPassword').value=''}})}catch(e){$('cloudGateError').textContent='Não foi possível conectar ao serviço. Verifique a configuração.';console.error(e)}}
 async function enterCloudApp(){if(!cloud||!cloudUser)return;try{const {data:member,error:memberError}=await cloud.from('vosco_members').select('user_id').eq('user_id',cloudUser.id).maybeSingle();if(memberError||!member)throw new Error('Este usuário não está autorizado para o painel.');await loadCloudProjects();$('cloudGate').style.display='none';$('mainApp').style.display='grid';cloudReady=true;setTimeout(()=>{try{map.invalidateSize(true);drawMap();drawShowrooms()}catch(e){console.warn('Mapa aguardando dimensionamento',e)}},250);if(cloudChannel)cloud.removeChannel(cloudChannel);cloudChannel=cloud.channel('vosco-projects-live').on('postgres_changes',{event:'*',schema:'public',table:'vosco_projects'},async(payload)=>{if(payload.new?.updated_by===cloudUser.id)return;try{await loadCloudProjects()}catch(e){console.error(e)}}).subscribe();const hadPrefs=!!localStorage.getItem(PREF_KEY);loadPrefs();if(!hadPrefs)map.fitBounds([[-24.05,-47.9],[-22.55,-45.65]],{padding:[18,18]});render();loadMunicipalBoundaries()}catch(e){cloudReady=false;$('cloudGateError').textContent=e.message.includes('autorizado')?e.message:'Falha ao carregar a base compartilhada. Verifique a configuração e as políticas de acesso.';console.error(e)}}
 $('cloudLoginForm').addEventListener('submit',async e=>{e.preventDefault();if(!cloud){$('cloudGateError').textContent='Configuração do Supabase pendente. Consulte o guia de implantação.';return}const email=$('cloudEmail').value.trim(),password=$('cloudPassword').value;$('cloudGateError').textContent='Entrando…';const {error}=await cloud.auth.signInWithPassword({email,password});if(error)$('cloudGateError').textContent='Não foi possível entrar. Confira e-mail, senha e autorização.';else $('cloudGateError').textContent='Autenticado. Carregando projetos…'});
+$('forgotPasswordBtn').addEventListener('click', async () => {
+  if (!cloud) {
+    $('cloudGateError').textContent =
+      'Não foi possível conectar ao serviço. Tente novamente.';
+    return;
+  }
+
+  const email = $('cloudEmail').value.trim();
+
+  if (!email) {
+    $('cloudGateError').textContent =
+      'Digite seu e-mail antes de solicitar a redefinição da senha.';
+    $('cloudEmail').focus();
+    return;
+  }
+
+  $('cloudGateError').textContent = 'Enviando solicitação…';
+
+  try {
+    const { error } = await cloud.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+
+    if (error) throw error;
+
+    $('cloudGateError').textContent =
+      'Se houver uma conta associada a esse e-mail, você receberá um link para redefinir a senha. Confira sua caixa de entrada.';
+  } catch (error) {
+    console.error('Erro na recuperação de senha:', error);
+    $('cloudGateError').textContent =
+      'Não foi possível enviar o e-mail. Tente novamente em alguns instantes.';
+  }
+});
+$('resetPasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const password = $('newPassword').value;
+  const confirmation = $('confirmNewPassword').value;
+
+  if (password.length < 8) {
+    $('cloudGateError').textContent =
+      'A senha precisa ter pelo menos 8 caracteres.';
+    return;
+  }
+
+  if (password !== confirmation) {
+    $('cloudGateError').textContent =
+      'As senhas não coincidem. Confira os dois campos.';
+    return;
+  }
+
+  $('cloudGateError').textContent = 'Salvando nova senha…';
+
+  const { error } = await cloud.auth.updateUser({
+    password: password
+  });
+
+  if (error) {
+    $('cloudGateError').textContent =
+      'Não foi possível atualizar a senha. Solicite um novo link e tente novamente.';
+    console.error(error);
+    return;
+  }
+
+  $('cloudGateError').textContent =
+    'Senha alterada com sucesso! Você já pode entrar com a nova senha.';
+
+  $('resetPasswordForm').reset();
+  $('resetPasswordPanel').style.display = 'none';
+  $('cloudLoginForm').style.display = 'block';
+  $('cloudGate').querySelector('h2').style.display = 'block';
+
+  await cloud.auth.signOut();
+});
+$('cancelResetPassword').addEventListener('click', () => {
+  $('resetPasswordForm').reset();
+  $('resetPasswordPanel').style.display = 'none';
+  $('cloudLoginForm').style.display = 'block';
+  $('cloudGate').querySelector('h2').style.display = 'block';
+  $('cloudGateError').textContent = '';
+});
 function openGeoDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('IndexedDB indisponível'));return}const req=indexedDB.open(GEO_DB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('cache'))req.result.createObjectStore('cache')};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
 async function geoCacheGet(key){const db=await openGeoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('cache','readonly'),req=tx.objectStore('cache').get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close()})}
 async function geoCacheSet(key,value){const db=await openGeoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('cache','readwrite');tx.objectStore('cache').put(value,key);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
