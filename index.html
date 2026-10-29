@@ -2018,7 +2018,6 @@ function fitPole(pole){const feats=municipalFeatures.filter(f=>{const c=CITY_DAT
 $('zoomSP').onclick=()=>{$('pole').value='sp';render();fitPole('sp');persistPrefs()};
 $('zoomInd').onclick=()=>{$('pole').value='indaiatuba';render();fitPole('indaiatuba');persistPrefs()};
 $('zoomBoth').onclick=()=>{$('pole').value='all';render();fitPole('all');persistPrefs()};
-$('resetViewBtn').onclick=()=>{fitPole($('pole').value);persistPrefs()};
 map.on('moveend zoomend',persistPrefs);
 $('projectModal').addEventListener('click',e=>{if(e.target===$('projectModal'))closeForm()});$('manageModal').addEventListener('click',e=>{if(e.target===$('manageModal'))$('manageModal').classList.remove('open')});$('importPreviewModal').addEventListener('click',e=>{if(e.target===$('importPreviewModal'))closeImportPreview()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForm();$('manageModal').classList.remove('open');closeImportPreview()}});
 
