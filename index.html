@@ -76,7 +76,7 @@ main{min-width:0;padding:22px 24px 28px}
 .mini-stat{background:#15181b;border:1px solid var(--line);border-radius:9px;padding:12px;min-width:0}
 .mini-stat strong{display:block;font-size:17px;margin:5px 0}.mini-stat small{font-size:10px;color:var(--muted)}
 .stage-pill{display:inline-block;border:1px solid #4a5057;border-radius:20px;padding:3px 7px;font-size:10px;color:#ddd}
-.executive-mode .sidebar,.executive-mode .map-tools,.executive-mode #projectTable,.executive-mode #citySummary{display:none!important}
+.executive-mode .sidebar,.executive-mode #projectTable,.executive-mode #citySummary{display:none!important}
 .executive-mode .app{grid-template-columns:1fr}.executive-mode main{padding:28px}.executive-mode .metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
 .executive-mode .metric .value{font-size:32px}
 #exitExecutiveBtn{display:none;position:fixed;top:16px;right:18px;z-index:1500;box-shadow:0 8px 24px #0006}
@@ -1050,8 +1050,14 @@ body.client-presentation-mode #clientProjectList {
     style="display:none;width:100%;border:1px solid #454545;border-radius:8px;background:#17191c;padding:8px"
   ></div>
 </div>
-  <div id="clientPresentationMap" style="height:65vh;min-height:380px;border-radius:12px;overflow:hidden"></div>
+  <div class="map-tools" style="margin:12px 0">
+  <button class="btn" id="clientZoomSP" type="button">São Paulo</button>
+  <button class="btn" id="clientZoomInd" type="button">Indaiatuba</button>
+  <button class="btn" id="clientZoomBoth" type="button">Ver os dois polos</button>
+  <button class="btn" id="clientZoomFactory" type="button">Fábrica</button>
+</div>
 
+<div id="clientPresentationMap" style="height:65vh;min-height:380px;border-radius:12px;overflow:hidden"></div>
   <div class="metric" style="margin-top:16px">
     <h3>Projetos por cidade</h3>
     <div id="clientCitySummary"></div>
@@ -1653,7 +1659,40 @@ function initClientPresentationMap() {
   ).addTo(clientMap);
 
   clientProjectLayer = L.layerGroup().addTo(clientMap);
-  clientShowroomLayer = L.layerGroup().addTo(clientMap);
+clientShowroomLayer = L.layerGroup().addTo(clientMap);
+
+$('clientZoomSP').onclick=()=>{
+  clientMap.flyTo([-23.54221116991032, -46.567856145333046], 16, {
+    animate:true,
+    duration:1.5
+  });
+};
+
+$('clientZoomInd').onclick=()=>{
+  clientMap.flyTo([-23.086668525591502, -47.1986368274918], 16, {
+    animate:true,
+    duration:1.5
+  });
+};
+
+$('clientZoomBoth').onclick=()=>{
+  clientMap.flyToBounds([
+    [-23.54221116991032, -46.567856145333046],
+    [-23.086668525591502, -47.1986368274918]
+  ], {
+    padding:[30,30],
+    maxZoom:9,
+    duration:1.5
+  });
+};
+
+$('clientZoomFactory').onclick=()=>{
+  clientMap.flyTo([-29.592961607740598, -51.12442806003702], 16, {
+    animate:true,
+    duration:1.5
+  });
+};
+
 drawClientShowrooms();
 }
 
