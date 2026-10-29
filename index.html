@@ -438,7 +438,33 @@ body.client-presentation-mode #clientPresentationView .map-head {
 #cloudGate .password-field input {
   padding-right: 82px;
 }
+#cloudGate .password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #b4bac0;
+  cursor: pointer;
+}
 
+#cloudGate .password-toggle:hover {
+  color: #f5f1e9;
+  background: #ffffff10;
+}
+
+#cloudGate .password-toggle:focus-visible {
+  outline: 2px solid #c6a56b;
+  outline-offset: 2px;
+}
 #cloudGate .password-toggle {
   position: absolute;
   top: 50%;
@@ -867,6 +893,20 @@ body.client-presentation-mode #clientProjectList {
 <label for="cloudPassword">Senha</label>
 <div class="password-field">
   <input id="cloudPassword" type="password" autocomplete="current-password" required placeholder="Sua senha">
+
+  <button
+    type="button"
+    id="togglePassword"
+    class="password-toggle"
+    aria-label="Mostrar senha"
+    aria-pressed="false"
+    title="Mostrar senha"
+  >
+    <svg id="passwordEyeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  </button>
 </div>
 
 <button class="btn primary full" type="submit" style="margin-top:16px">Entrar</button>
@@ -1628,6 +1668,28 @@ function setExecutiveMode(on) {
   }, 150);
 }
 $('execModeBtn').onclick=()=>setExecutiveMode(!document.body.classList.contains('executive-mode'));
+const passwordInput = $('cloudPassword');
+const togglePassword = $('togglePassword');
+
+if (passwordInput && togglePassword) {
+  togglePassword.addEventListener('click', () => {
+    const showPassword = passwordInput.type === 'password';
+
+    passwordInput.type = showPassword ? 'text' : 'password';
+
+    togglePassword.setAttribute(
+      'aria-label',
+      showPassword ? 'Ocultar senha' : 'Mostrar senha'
+    );
+
+    togglePassword.setAttribute(
+      'aria-pressed',
+      String(showPassword)
+    );
+
+    togglePassword.title = showPassword ? 'Ocultar senha' : 'Mostrar senha';
+  });
+}
 $('exitExecutiveBtn').onclick=()=>setExecutiveMode(false);
   
 let clientMap = null;
