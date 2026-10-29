@@ -2038,26 +2038,30 @@ function fitPole(pole){const feats=municipalFeatures.filter(f=>{const c=CITY_DAT
 $('zoomSP').onclick=()=>{
   $('pole').value='sp';
   render();
-  fitPole('sp');
-  map.setZoom(16);
+  map.flyTo([-23.54221116991032, -46.567856145333046], 16, {
+    animate: true,
+    duration: 1.5
+  });
   persistPrefs();
 };
 
 $('zoomInd').onclick=()=>{
   $('pole').value='indaiatuba';
   render();
-  fitPole('indaiatuba');
-  map.setZoom(16);
+  map.flyTo([-23.086668525591502, -47.1986368274918], 16, {
+    animate: true,
+    duration: 1.5
+  });
   persistPrefs();
 };
-  $('zoomBoth').onclick=()=>{$('pole').value='all';render();fitPole('all');persistPrefs()};
-  $('zoomFactory').onclick=()=>{
+
+$('zoomFactory').onclick=()=>{
   map.flyTo([-29.592961607740598, -51.12442806003702], 16, {
     animate: true,
     duration: 1.5
   });
 };
-map.on('moveend zoomend',persistPrefs);
+  map.on('moveend zoomend',persistPrefs);
 $('projectModal').addEventListener('click',e=>{if(e.target===$('projectModal'))closeForm()});$('manageModal').addEventListener('click',e=>{if(e.target===$('manageModal'))$('manageModal').classList.remove('open')});$('importPreviewModal').addEventListener('click',e=>{if(e.target===$('importPreviewModal'))closeImportPreview()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForm();$('manageModal').classList.remove('open');closeImportPreview()}});
 
 function exportExecutivePdf() {
