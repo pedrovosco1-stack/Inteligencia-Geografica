@@ -2035,9 +2035,22 @@ $('fileInput').onchange=async e=>{
 };
 ['pole','statusFilter','yearFilter','cityFilter','showProjects','showCities','showOpportunities','mapMode'].forEach(id=>$(id).addEventListener('change',()=>{render();persistPrefs()}));
 function fitPole(pole){const feats=municipalFeatures.filter(f=>{const c=CITY_DATA.find(x=>normName(x.name)===normName(f.properties?.name||''));return c&&(pole==='all'||c.pole===pole)});if(feats.length){const layer=L.geoJSON({type:'FeatureCollection',features:feats});map.fitBounds(layer.getBounds(),{padding:[20,20],maxZoom:10})}else if(pole==='sp')map.fitBounds([[-24.05,-47.15],[-22.85,-45.65]],{padding:[20,20]});else if(pole==='indaiatuba')map.fitBounds([[-23.45,-47.9],[-22.55,-46.65]],{padding:[20,20]});else map.fitBounds([[-24.05,-47.9],[-22.55,-45.65]],{padding:[20,20]})}
-$('zoomSP').onclick=()=>{$('pole').value='sp';render();fitPole('sp');persistPrefs()};
-$('zoomInd').onclick=()=>{$('pole').value='indaiatuba';render();fitPole('indaiatuba');persistPrefs()};
-$('zoomBoth').onclick=()=>{$('pole').value='all';render();fitPole('all');persistPrefs()};
+$('zoomSP').onclick=()=>{
+  $('pole').value='sp';
+  render();
+  fitPole('sp');
+  map.setZoom(16);
+  persistPrefs();
+};
+
+$('zoomInd').onclick=()=>{
+  $('pole').value='indaiatuba';
+  render();
+  fitPole('indaiatuba');
+  map.setZoom(16);
+  persistPrefs();
+};
+  $('zoomBoth').onclick=()=>{$('pole').value='all';render();fitPole('all');persistPrefs()};
   $('zoomFactory').onclick=()=>{
   map.flyTo([-29.592961607740598, -51.12442806003702], 16, {
     animate: true,
