@@ -34,8 +34,27 @@ main{min-width:0;padding:22px 24px 28px}
 .map-panel{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
 .map-head{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
 .map-head h3{font-size:14px;margin:0;font-weight:600}.map-head p{font-size:11px;color:var(--muted);margin:3px 0 0}
-.map-tools{display:flex;gap:7px;flex-wrap:wrap}.map-tools .btn{font-size:11px;padding:7px 10px}
-#map{height:min(60vh,620px);min-height:420px;background:#dce1df}
+.map-tools{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  align-items:stretch;
+}
+
+.map-tools .btn{
+  flex:1 1 160px;
+  min-width:0;
+  min-height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  white-space:normal;
+  font-size:11px;
+  padding:7px 10px;
+  box-sizing:border-box;
+}
+  #map{height:min(60vh,620px);min-height:420px;background:#dce1df}
 .legend{display:flex;gap:14px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
 .below{display:grid;grid-template-columns:1.15fr .85fr;gap:13px;margin-top:14px}
@@ -911,6 +930,7 @@ body.client-presentation-mode #clientProjectList {
     <button class="btn" id="zoomInd">Indaiatuba</button>
     <button class="btn" id="zoomBoth">Ver os dois polos</button>
     <button class="btn" id="refreshBoundariesBtn">Atualizar limites municipais</button>
+    <button class="btn" id="zoomFactory">Fábrica</button>
   </div>
 </div>
     <div id="map"></div>
@@ -2018,6 +2038,12 @@ function fitPole(pole){const feats=municipalFeatures.filter(f=>{const c=CITY_DAT
 $('zoomSP').onclick=()=>{$('pole').value='sp';render();fitPole('sp');persistPrefs()};
 $('zoomInd').onclick=()=>{$('pole').value='indaiatuba';render();fitPole('indaiatuba');persistPrefs()};
 $('zoomBoth').onclick=()=>{$('pole').value='all';render();fitPole('all');persistPrefs()};
+  $('zoomFactory').onclick=()=>{
+  map.flyTo([-29.592961607740598, -51.12442806003702], 16, {
+    animate: true,
+    duration: 1.5
+  });
+};
 map.on('moveend zoomend',persistPrefs);
 $('projectModal').addEventListener('click',e=>{if(e.target===$('projectModal'))closeForm()});$('manageModal').addEventListener('click',e=>{if(e.target===$('manageModal'))$('manageModal').classList.remove('open')});$('importPreviewModal').addEventListener('click',e=>{if(e.target===$('importPreviewModal'))closeImportPreview()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForm();$('manageModal').classList.remove('open');closeImportPreview()}});
 
