@@ -1412,10 +1412,11 @@ $('forgotPasswordBtn').addEventListener('click', async () => {
     $('cloudGateError').textContent =
       'Se houver uma conta associada a esse e-mail, você receberá um link para redefinir a senha. Confira sua caixa de entrada.';
   } catch (error) {
-    console.error('Erro na recuperação de senha:', error);
-    $('cloudGateError').textContent =
-      'Não foi possível enviar o e-mail. Tente novamente em alguns instantes.';
-  }
+  console.error('Erro na recuperação de senha:', error);
+
+  $('cloudGateError').textContent =
+    'Erro: ' + (error.message || 'Não foi possível enviar o e-mail.');
+}
 });
 $('resetPasswordForm').addEventListener('submit', async (e) => {
   e.preventDefault();
