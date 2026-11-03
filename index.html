@@ -3593,6 +3593,7 @@ saveMeetingDecisionBtn.addEventListener('click', async () => {
 });
 // Abre uma demanda para discussão durante a reunião
 function openMeetingDemand(demandId) {
+  alert('Clique detectado! ID: ' + demandId);
   const demand = meetingDemands.find(item => item.id === demandId);
   currentMeetingDemandId = demandId;
 
