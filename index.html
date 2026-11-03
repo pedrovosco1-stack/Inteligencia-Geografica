@@ -3544,11 +3544,14 @@ closeMeetingDetailsBtn.addEventListener('click', () => {
   const demandHeading = document.querySelector('#meetingDemandsPanel .meeting-panel-heading');
   if (demandHeading) demandHeading.style.display = 'flex';
 
+  document.getElementById('meetingDemandsPanel').style.display = 'block';
+
   currentMeetingDemandId = null;
 });
 const saveMeetingDecisionBtn = document.getElementById('saveMeetingDecisionBtn');
 
 saveMeetingDecisionBtn.addEventListener('click', async () => {
+ 
   if (!currentMeetingDemandId) {
     toast('Nenhuma demanda selecionada.');
     return;
@@ -3601,7 +3604,13 @@ saveMeetingDecisionBtn.addEventListener('click', async () => {
     await loadMeetingDemands();
 
     document.getElementById('meetingDemandDetails').style.display = 'none';
-    document.getElementById('meetingDemandsPanel').style.display = 'block';
+
+document.getElementById('meetingDemandsList').style.display = 'block';
+
+const headingAfterSave = document.querySelector('#meetingDemandsPanel .meeting-panel-heading');
+if (headingAfterSave) headingAfterSave.style.display = 'flex';
+
+document.getElementById('meetingDemandsPanel').style.display = 'block';
 
     currentMeetingDemandId = null;
 
