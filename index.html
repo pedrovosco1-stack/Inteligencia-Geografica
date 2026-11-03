@@ -3628,8 +3628,7 @@ function openMeetingDemand(demandId) {
 document.getElementById('meetingDemandsList').style.display = 'none';
 document.getElementById('meetingDemandDetails').style.display = 'block';
 
-const demandHeading = document.querySelector('#meetingDemandsPanel .meeting-panel-heading');
-if (demandHeading) demandHeading.style.display = 'none';
+document.querySelector('#meetingDemandsPanel .meeting-panel-heading').style.display = 'none';
 
 const demandHeading = document.querySelector('#meetingDemandsPanel .meeting-panel-heading');
 if (demandHeading) demandHeading.style.display = 'none';
