@@ -1364,8 +1364,14 @@ body.client-presentation-mode #clientProjectList {
 
   <div style="display:flex;gap:10px;flex-wrap:wrap;">
     <button class="btn primary" id="saveMeetingDecisionBtn">Salvar encaminhamento</button>
+
+    <button class="btn" id="deleteMeetingDemandBtn"
+      style="background:#722f2f;color:#fff;border:1px solid #a34b4b;">
+      Excluir demanda
+    </button>
+
     <button class="btn" id="closeMeetingDetailsBtn">Voltar às demandas</button>
-  </div>
+</div>
 
 </div>
     </div>
@@ -3549,6 +3555,58 @@ closeMeetingDetailsBtn.addEventListener('click', () => {
   currentMeetingDemandId = null;
 });
 const saveMeetingDecisionBtn = document.getElementById('saveMeetingDecisionBtn');
+  // Excluir demanda selecionada
+const deleteMeetingDemandBtn = document.getElementById('deleteMeetingDemandBtn');
+
+deleteMeetingDemandBtn.addEventListener('click', async () => {
+  if (!currentMeetingDemandId) {
+    toast('Nenhuma demanda selecionada.');
+    return;
+  }
+
+  const confirmed = confirm(
+    'Tem certeza de que deseja excluir esta demanda?\n\nEssa ação também excluirá o histórico associado e não poderá ser desfeita.'
+  );
+
+  if (!confirmed) return;
+
+  deleteMeetingDemandBtn.disabled = true;
+  deleteMeetingDemandBtn.textContent = 'Excluindo...';
+
+  try {
+    const { error } = await cloud
+      .from('vosco_meeting_demands')
+      .delete()
+      .eq('id', currentMeetingDemandId);
+
+    if (error) throw error;
+
+    meetingDemands = meetingDemands.filter(
+      demand => demand.id !== currentMeetingDemandId
+    );
+
+    renderMeetingDemands();
+
+    document.getElementById('meetingDemandDetails').style.display = 'none';
+    document.getElementById('meetingDemandsList').style.display = 'block';
+
+    const headingAfterDelete = document.querySelector('#meetingDemandsPanel .meeting-panel-heading');
+    if (headingAfterDelete) headingAfterDelete.style.display = 'flex';
+
+    document.getElementById('meetingDemandsPanel').style.display = 'block';
+
+    currentMeetingDemandId = null;
+
+    toast('Demanda excluída com sucesso.');
+
+  } catch (error) {
+    console.error('Erro ao excluir demanda:', error);
+    toast('Não foi possível excluir a demanda.');
+  } finally {
+    deleteMeetingDemandBtn.disabled = false;
+    deleteMeetingDemandBtn.textContent = 'Excluir demanda';
+  }
+});
 
 saveMeetingDecisionBtn.addEventListener('click', async () => {
  
