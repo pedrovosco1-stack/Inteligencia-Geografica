@@ -1363,14 +1363,23 @@ body.client-presentation-mode #clientProjectList {
   </label>
 
   <div style="display:flex;gap:10px;flex-wrap:wrap;">
-    <button class="btn primary" id="saveMeetingDecisionBtn">Salvar encaminhamento</button>
+    <button class="btn primary" id="saveMeetingDecisionBtn">
+  Salvar encaminhamento
+</button>
 
-    <button class="btn" id="deleteMeetingDemandBtn"
-      style="background:#722f2f;color:#fff;border:1px solid #a34b4b;">
-      Excluir demanda
-    </button>
+<button class="btn" id="sendMeetingWhatsAppBtn"
+  style="background:#176b43;color:#fff;border:1px solid #27865a;">
+  Enviar pelo WhatsApp
+</button>
 
-    <button class="btn" id="closeMeetingDetailsBtn">Voltar às demandas</button>
+<button class="btn" id="deleteMeetingDemandBtn"
+  style="background:#722f2f;color:#fff;border:1px solid #a34b4b;">
+  Excluir demanda
+</button>
+
+<button class="btn" id="closeMeetingDetailsBtn">
+  Voltar às demandas
+</button>
 </div>
 
 </div>
@@ -3553,6 +3562,91 @@ closeMeetingDetailsBtn.addEventListener('click', () => {
   document.getElementById('meetingDemandsPanel').style.display = 'block';
 
   currentMeetingDemandId = null;
+});
+  // VOSCO — ENVIAR ENCAMINHAMENTO PELO WHATSAPP
+const sendMeetingWhatsAppBtn = document.getElementById('sendMeetingWhatsAppBtn');
+
+sendMeetingWhatsAppBtn.addEventListener('click', () => {
+  if (!currentMeetingDemandId) {
+    toast('Nenhuma demanda selecionada.');
+    return;
+  }
+
+  const demand = meetingDemands.find(
+    item => item.id === currentMeetingDemandId
+  );
+
+  if (!demand) {
+    toast('Não foi possível localizar a demanda.');
+    return;
+  }
+
+  const responsibleId = document.getElementById('meetingResponsible').value;
+  const responsible = meetingMembers.find(
+    member => member.id === responsibleId
+  );
+
+  if (!responsible || !responsible.phone) {
+    toast('Selecione um responsável com telefone cadastrado.');
+    return;
+  }
+
+  const actionDetails = document.getElementById('meetingActionDetails').value.trim();
+  const deliveryDeadline = document.getElementById('meetingDeliveryDeadline').value;
+  const status = document.getElementById('meetingDemandStatus').value;
+
+  if (!actionDetails) {
+    toast('Preencha o encaminhamento antes de enviar.');
+    return;
+  }
+
+  // Verifica se as informações foram salvas no sistema
+  if (
+    actionDetails !== (demand.action_details || '') ||
+    responsibleId !== (demand.responsible_member_id || '') ||
+    deliveryDeadline !== (demand.delivery_deadline || '') ||
+    status !== (demand.status || 'Aguardando Reunião')
+  ) {
+    toast('Salve o encaminhamento antes de enviar pelo WhatsApp.');
+    return;
+  }
+
+  let phone = String(responsible.phone).replace(/\D/g, '');
+
+  if (phone.length === 10 || phone.length === 11) {
+    phone = '55' + phone;
+  }
+
+  const formattedDeadline = deliveryDeadline
+    ? new Date(deliveryDeadline + 'T00:00:00').toLocaleDateString('pt-BR')
+    : 'Não definida';
+
+  const message = `Olá, ${responsible.name}! Tudo bem?
+
+Foi definido na reunião da VOSCO o seguinte encaminhamento:
+
+*DEMANDA:* ${demand.subject}
+
+*SOLICITANTE:* ${demand.requester}
+*SETOR:* ${demand.requesting_sector}
+
+*ENCAMINHAMENTO / AÇÃO:*
+${demand.action_details}
+
+*DATA LIMITE DE ENTREGA:* ${formattedDeadline}
+
+*STATUS:* ${demand.status}
+
+Por favor, acompanhe essa providência conforme o prazo combinado.
+
+Obrigado!
+VOSCO`;
+
+  const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+  window.open(whatsappUrl, '_blank');
+
+  toast('Abrindo conversa no WhatsApp.');
 });
 const saveMeetingDecisionBtn = document.getElementById('saveMeetingDecisionBtn');
   // Excluir demanda selecionada
