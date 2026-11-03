@@ -77,6 +77,46 @@ button,a{font:inherit}.page{max-width:1500px;margin:0 auto;padding:28px clamp(18
     </div>
   </div>
 </section>
+    <section id="requestsSection" style="margin:25px 0;padding:24px;border:1px solid var(--line);border-radius:12px;background:var(--panel)">
+  <div class="section-head">
+    <div>
+      <h2>Solicitações de reunião</h2>
+      <p>Registre os assuntos que deverão ser discutidos nas reuniões semanais.</p>
+    </div>
+  </div>
+
+  <form id="requestForm" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+    <input type="hidden" id="requestId">
+
+    <label>Setor
+      <input id="requestSector" required placeholder="Ex.: Comercial">
+    </label>
+
+    <label>Solicitante
+      <input id="requester" required placeholder="Nome de quem solicitou">
+    </label>
+
+    <label style="grid-column:1/-1">Assunto
+      <input id="requestSubject" required placeholder="Qual assunto deverá ser discutido?">
+    </label>
+
+    <label style="grid-column:1/-1">Descrição
+      <textarea id="requestDescription" rows="4" placeholder="Descreva o assunto e os pontos importantes..."></textarea>
+    </label>
+
+    <div style="grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap">
+      <button type="submit" id="requestSave">Registrar solicitação</button>
+      <button type="button" id="requestCancel" style="display:none">Cancelar edição</button>
+    </div>
+  </form>
+
+  <div style="margin-top:24px">
+    <input id="requestSearch" placeholder="Pesquisar solicitações..." style="width:100%;margin-bottom:14px">
+    <div id="requestList">
+      <p style="color:var(--muted)">Carregando solicitações...</p>
+    </div>
+  </div>
+</section>
     <section class="modules" aria-label="Módulos do VOSCO Meeting">
       <article class="module"><span class="module-status">Estrutura inicial</span><div class="module-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15M8 7h8M8 11h8"/></svg></div><h3>Solicitações</h3><p>Registro dos assuntos recebidos durante a semana, com setor, solicitante e data automática.</p></article>
       <article class="module"><span class="module-status">Estrutura inicial</span><div class="module-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16M4 12h16M4 19h16"/><circle cx="8" cy="5" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="10" cy="19" r="1.5" fill="currentColor"/></svg></div><h3>Pauta semanal</h3><p>Organização dos assuntos que serão apresentados e discutidos na próxima reunião.</p></article>
@@ -246,6 +286,195 @@ const cloudUser = session.user;
             document.getElementById('collaboratorCancel').style.display = 'none';
 
             await loadCollaborators();
+            // VOSCO MEETING | Solicitações
+
+  const requestForm = document.getElementById('requestForm');
+  const requestList = document.getElementById('requestList');
+  const requestSearch = document.getElementById('requestSearch');
+  let requestsCache = [];
+
+  const requestStatusLabels = {
+      aguardando_reuniao: 'Aguardando reunião',
+      incluida_pauta: 'Incluída na pauta',
+      adiada: 'Adiada',
+      resolvida_reuniao: 'Resolvida na reunião',
+      transformada_execucao: 'Transformada em execução',
+      acompanhamento: 'Em acompanhamento',
+      cancelada: 'Cancelada'
+  };
+
+  async function loadRequests() {
+      requestList.innerHTML = '<p>Carregando solicitações...</p>';
+
+      const { data, error } = await cloud
+          .from('meeting_requests')
+          .select('id, sector, requester, subject, description, status, created_at')
+          .order('created_at', { ascending: false });
+
+      if (error) {
+          console.error(error);
+          requestList.innerHTML =
+              '<p>Não foi possível carregar as solicitações.</p>';
+          return;
+      }
+
+      requestsCache = data || [];
+      renderRequests();
+  }
+
+  function renderRequests() {
+      const term = requestSearch.value.trim().toLowerCase();
+
+      const filtered = requestsCache.filter(item =>
+          [item.sector, item.requester, item.subject, item.description]
+              .some(value => (value || '').toLowerCase().includes(term))
+      );
+
+      if (!filtered.length) {
+          requestList.innerHTML =
+              '<p style="color:var(--muted)">Nenhuma solicitação encontrada.</p>';
+          return;
+      }
+
+      requestList.innerHTML = filtered.map(item => `
+          <div style="padding:17px 0;border-bottom:1px solid var(--line)">
+              <div style="display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap">
+                  <div style="flex:1;min-width:220px">
+                      <strong>${escapeHTML(item.subject)}</strong>
+                      <div style="color:var(--muted);font-size:12px;margin-top:5px">
+                          ${escapeHTML(item.sector)} · Solicitante: ${escapeHTML(item.requester)}
+                      </div>
+                      <div style="color:var(--muted);font-size:12px;margin-top:4px">
+                          Registrada em: ${new Date(item.created_at).toLocaleString('pt-BR')}
+                      </div>
+                      <div style="margin-top:8px;font-size:12px">
+                          Status: ${escapeHTML(requestStatusLabels[item.status] || item.status)}
+                      </div>
+                      ${item.description ? `
+                          <p style="margin:10px 0 0;color:var(--muted);font-size:13px">
+                              ${escapeHTML(item.description)}
+                          </p>
+                      ` : ''}
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:flex-start">
+                      <button type="button" data-request-action="edit" data-id="${item.id}">Editar</button>
+                      <button type="button" data-request-action="delete" data-id="${item.id}">Excluir</button>
+                  </div>
+              </div>
+          </div>
+      `).join('');
+  }
+
+  requestForm.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      const id = document.getElementById('requestId').value;
+      const sector = document.getElementById('requestSector').value.trim();
+      const requester = document.getElementById('requester').value.trim();
+      const subject = document.getElementById('requestSubject').value.trim();
+      const description = document.getElementById('requestDescription').value.trim();
+
+      if (!sector || !requester || !subject) {
+          alert('Preencha o setor, solicitante e assunto.');
+          return;
+      }
+
+      const saveButton = document.getElementById('requestSave');
+      saveButton.disabled = true;
+      saveButton.textContent = 'Salvando...';
+
+      try {
+          let result;
+
+          if (id) {
+              result = await cloud
+                  .from('meeting_requests')
+                  .update({ sector, requester, subject, description })
+                  .eq('id', id);
+          } else {
+              result = await cloud
+                  .from('meeting_requests')
+                  .insert({
+                      sector,
+                      requester,
+                      subject,
+                      description,
+                      status: 'aguardando_reuniao',
+                      created_by: cloudUser.id
+                  });
+          }
+
+          if (result.error) throw result.error;
+
+          requestForm.reset();
+          document.getElementById('requestId').value = '';
+          saveButton.textContent = 'Registrar solicitação';
+          document.getElementById('requestCancel').style.display = 'none';
+
+          await loadRequests();
+          alert(id ? 'Solicitação atualizada!' : 'Solicitação registrada!');
+      } catch (error) {
+          console.error(error);
+          alert('Erro ao salvar solicitação: ' + error.message);
+      } finally {
+          saveButton.disabled = false;
+          if (!document.getElementById('requestId').value) {
+              saveButton.textContent = 'Registrar solicitação';
+          }
+      }
+  });
+
+  requestList.addEventListener('click', async event => {
+      const button = event.target.closest('button[data-request-action]');
+      if (!button) return;
+
+      const item = requestsCache.find(
+          request => request.id === button.dataset.id
+      );
+
+      if (!item) return;
+
+      if (button.dataset.requestAction === 'edit') {
+          document.getElementById('requestId').value = item.id;
+          document.getElementById('requestSector').value = item.sector;
+          document.getElementById('requester').value = item.requester;
+          document.getElementById('requestSubject').value = item.subject;
+          document.getElementById('requestDescription').value = item.description || '';
+
+          document.getElementById('requestSave').textContent = 'Salvar alterações';
+          document.getElementById('requestCancel').style.display = 'inline-block';
+
+          requestForm.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      if (button.dataset.requestAction === 'delete') {
+          if (!confirm(`Deseja realmente excluir a solicitação "${item.subject}"?`)) return;
+
+          const { error } = await cloud
+              .from('meeting_requests')
+              .delete()
+              .eq('id', item.id);
+
+          if (error) {
+              alert('Não foi possível excluir. Essa solicitação pode já estar vinculada a um encaminhamento. Detalhe: ' + error.message);
+              return;
+          }
+
+          await loadRequests();
+          alert('Solicitação excluída.');
+      }
+  });
+
+  document.getElementById('requestCancel').addEventListener('click', () => {
+      requestForm.reset();
+      document.getElementById('requestId').value = '';
+      document.getElementById('requestSave').textContent = 'Registrar solicitação';
+      document.getElementById('requestCancel').style.display = 'none';
+  });
+
+  requestSearch.addEventListener('input', renderRequests);
+
+  await loadRequests();
             alert(id ? 'Colaborador atualizado!' : 'Colaborador cadastrado!');
         } catch (error) {
             console.error(error);
