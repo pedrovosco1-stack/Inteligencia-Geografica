@@ -1239,6 +1239,78 @@ body.client-presentation-mode #clientProjectList {
     </nav>
 
     <div id="meetingDemandsPanel">
+      
+<!-- FORMULÁRIO DE NOVA DEMANDA -->
+<div id="meetingDemandForm" style="
+  display:none;
+  margin-bottom:25px;
+  padding:24px;
+  background:#191a1b;
+  border:1px solid #45423d;
+  border-radius:7px;
+">
+  <h3 style="margin-top:0;color:#eeeae2">
+    Registrar nova demanda
+  </h3>
+
+  <div style="display:grid;gap:16px;max-width:650px">
+
+    <label>
+      <span style="display:block;margin-bottom:7px">Setor solicitante</span>
+      <select id="meetingDemandSector"
+        style="width:100%;padding:12px;box-sizing:border-box">
+        <option value="">Selecione o setor</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Executivo">Executivo</option>
+        <option value="Financeiro">Financeiro</option>
+        <option value="Montagem">Montagem</option>
+        <option value="Pós Vendas">Pós Vendas</option>
+      </select>
+    </label>
+
+    <label>
+      <span style="display:block;margin-bottom:7px">Solicitante</span>
+      <input id="meetingDemandRequester" type="text"
+        placeholder="Nome de quem está solicitando"
+        style="width:100%;padding:12px;box-sizing:border-box">
+    </label>
+
+    <label>
+      <span style="display:block;margin-bottom:7px">Assunto</span>
+      <textarea id="meetingDemandSubject"
+        rows="3"
+        placeholder="Descreva resumidamente a demanda"
+        style="width:100%;padding:12px;box-sizing:border-box;resize:vertical"></textarea>
+    </label>
+
+    <label>
+      <span style="display:block;margin-bottom:7px">Prioridade</span>
+      <select id="meetingDemandPriority"
+        style="width:100%;padding:12px;box-sizing:border-box">
+        <option value="Baixa">Baixa</option>
+        <option value="Média" selected>Média</option>
+        <option value="Alta">Alta</option>
+      </select>
+    </label>
+
+    <label>
+      <span style="display:block;margin-bottom:7px">Data de abertura</span>
+      <input id="meetingDemandOpenedOn" type="date"
+        style="width:100%;padding:12px;box-sizing:border-box">
+    </label>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn primary" id="saveMeetingDemandBtn">
+        Salvar demanda
+      </button>
+      <button class="btn" id="cancelMeetingDemandBtn">
+        Cancelar
+      </button>
+    </div>
+
+  </div>
+</div>
+
       <div class="meeting-panel-heading">
         <div>
           <h3>Pauta de demandas</h3>
@@ -3264,6 +3336,100 @@ cancelMeetingMemberBtn.addEventListener('click', () => {
   document.getElementById('meetingMemberName').value = '';
   document.getElementById('meetingMemberSector').value = '';
   document.getElementById('meetingMemberPhone').value = '';
+});
+
+// ============================================
+// VOSCO — ABRIR E FECHAR FORMULÁRIO
+// DE DEMANDAS
+// ============================================
+
+const newMeetingDemandBtn = document.getElementById('newMeetingDemandBtn');
+const meetingDemandForm = document.getElementById('meetingDemandForm');
+const cancelMeetingDemandBtn = document.getElementById('cancelMeetingDemandBtn');
+
+newMeetingDemandBtn.addEventListener('click', () => {
+  meetingDemandForm.style.display = 'block';
+
+  // Preencher automaticamente a data atual
+  const today = new Date();
+  const localDate = new Date(
+    today.getTime() - today.getTimezoneOffset() * 60000
+  ).toISOString().slice(0, 10);
+
+  document.getElementById('meetingDemandOpenedOn').value = localDate;
+
+  document.getElementById('meetingDemandSector').focus();
+});
+
+cancelMeetingDemandBtn.addEventListener('click', () => {
+  meetingDemandForm.style.display = 'none';
+
+  document.getElementById('meetingDemandSector').value = '';
+  document.getElementById('meetingDemandRequester').value = '';
+  document.getElementById('meetingDemandSubject').value = '';
+  document.getElementById('meetingDemandPriority').value = 'Média';
+  document.getElementById('meetingDemandOpenedOn').value = '';
+});
+
+// ============================================
+// VOSCO — SALVAR NOVA DEMANDA
+// ============================================
+
+const saveMeetingDemandBtn = document.getElementById('saveMeetingDemandBtn');
+
+saveMeetingDemandBtn.addEventListener('click', async () => {
+  const requesting_sector = document.getElementById('meetingDemandSector').value;
+  const requester = document.getElementById('meetingDemandRequester').value.trim();
+  const subject = document.getElementById('meetingDemandSubject').value.trim();
+  const priority = document.getElementById('meetingDemandPriority').value;
+  const opened_on = document.getElementById('meetingDemandOpenedOn').value;
+
+  if (!requesting_sector || !requester || !subject || !opened_on) {
+    toast('Preencha todos os campos obrigatórios.');
+    return;
+  }
+
+  saveMeetingDemandBtn.disabled = true;
+  saveMeetingDemandBtn.textContent = 'Salvando...';
+
+  try {
+    const { data, error } = await cloud
+      .from('vosco_meeting_demands')
+      .insert([{
+        requesting_sector,
+        requester,
+        subject,
+        priority,
+        opened_on,
+        status: 'Aguardando Reunião',
+        created_by: cloudUser.id
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    meetingDemands.unshift(data);
+
+    renderMeetingDemands();
+
+    meetingDemandForm.style.display = 'none';
+
+    document.getElementById('meetingDemandSector').value = '';
+    document.getElementById('meetingDemandRequester').value = '';
+    document.getElementById('meetingDemandSubject').value = '';
+    document.getElementById('meetingDemandPriority').value = 'Média';
+    document.getElementById('meetingDemandOpenedOn').value = '';
+
+    toast('Demanda cadastrada com sucesso.');
+
+  } catch (error) {
+    console.error('Erro ao salvar demanda:', error);
+    toast('Não foi possível salvar a demanda.');
+  } finally {
+    saveMeetingDemandBtn.disabled = false;
+    saveMeetingDemandBtn.textContent = 'Salvar demanda';
+  }
 });
 
  // ============================================
