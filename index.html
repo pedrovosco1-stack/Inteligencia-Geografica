@@ -3534,6 +3534,15 @@ const requester = selectedRequester ? selectedRequester.name : '';
   }
 });
   // Salvar encaminhamento da reunião
+  // Fechar detalhes da demanda sem salvar alterações
+const closeMeetingDetailsBtn = document.getElementById('closeMeetingDetailsBtn');
+
+closeMeetingDetailsBtn.addEventListener('click', () => {
+  document.getElementById('meetingDemandDetails').style.display = 'none';
+  document.getElementById('meetingDemandsPanel').style.display = 'block';
+
+  currentMeetingDemandId = null;
+});
 const saveMeetingDecisionBtn = document.getElementById('saveMeetingDecisionBtn');
 
 saveMeetingDecisionBtn.addEventListener('click', async () => {
