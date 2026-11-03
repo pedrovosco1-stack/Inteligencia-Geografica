@@ -133,6 +133,181 @@ const cloudUser = session.user;
     if(memberError||!member){text.textContent='Este usuário não está autorizado a acessar a plataforma VOSCO.';return;}
     box.style.display='none';
     document.getElementById('meetingApp').style.display='block';
+    
+    // VOSCO MEETING | Cadastro de colaboradores
+
+    const collaboratorForm = document.getElementById('collaboratorForm');
+    const collaboratorList = document.getElementById('collaboratorList');
+    const collaboratorSearch = document.getElementById('collaboratorSearch');
+
+    let collaboratorsCache = [];
+
+    function escapeHTML(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[char]);
+    }
+
+    async function loadCollaborators() {
+        collaboratorList.innerHTML = '<p>Carregando colaboradores...</p>';
+
+        const { data, error } = await cloud
+            .from('meeting_collaborators')
+            .select('id, sector, name, phone, created_at')
+            .order('name', { ascending: true });
+
+        if (error) {
+            console.error(error);
+            collaboratorList.innerHTML =
+                '<p>Não foi possível carregar os colaboradores.</p>';
+            return;
+        }
+
+        collaboratorsCache = data || [];
+        renderCollaborators();
+    }
+
+    function renderCollaborators() {
+        const term = collaboratorSearch.value.trim().toLowerCase();
+
+        const filtered = collaboratorsCache.filter(person =>
+            person.name.toLowerCase().includes(term) ||
+            person.sector.toLowerCase().includes(term)
+        );
+
+        if (!filtered.length) {
+            collaboratorList.innerHTML =
+                '<p style="color:var(--muted)">Nenhum colaborador encontrado.</p>';
+            return;
+        }
+
+        collaboratorList.innerHTML = filtered.map(person => `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;padding:15px 0;border-bottom:1px solid var(--line)">
+                <div>
+                    <strong>${escapeHTML(person.name)}</strong>
+                    <div style="color:var(--muted);font-size:12px">
+                        ${escapeHTML(person.sector)} · ${escapeHTML(person.phone)}
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px">
+                    <button type="button" data-action="edit" data-id="${person.id}">Editar</button>
+                    <button type="button" data-action="delete" data-id="${person.id}">Excluir</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    collaboratorForm.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const id = document.getElementById('collaboratorId').value;
+        const sector = document.getElementById('collaboratorSector').value.trim();
+        const name = document.getElementById('collaboratorName').value.trim();
+        const phone = document.getElementById('collaboratorPhone').value.replace(/\D/g, '');
+
+        if (!sector || !name || phone.length < 10) {
+            alert('Preencha os campos corretamente. Informe o WhatsApp com DDD.');
+            return;
+        }
+
+        const saveButton = document.getElementById('collaboratorSave');
+        saveButton.disabled = true;
+        saveButton.textContent = 'Salvando...';
+
+        try {
+            let result;
+
+            if (id) {
+                result = await cloud
+                    .from('meeting_collaborators')
+                    .update({ sector, name, phone })
+                    .eq('id', id);
+            } else {
+                result = await cloud
+                    .from('meeting_collaborators')
+                    .insert({
+                        sector,
+                        name,
+                        phone,
+                        created_by: cloudUser.id
+                    });
+            }
+
+            if (result.error) throw result.error;
+
+            collaboratorForm.reset();
+            document.getElementById('collaboratorId').value = '';
+            document.getElementById('collaboratorSave').textContent =
+                'Cadastrar colaborador';
+            document.getElementById('collaboratorCancel').style.display = 'none';
+
+            await loadCollaborators();
+            alert(id ? 'Colaborador atualizado!' : 'Colaborador cadastrado!');
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao salvar colaborador: ' + error.message);
+        } finally {
+            saveButton.disabled = false;
+            if (!document.getElementById('collaboratorId').value) {
+                saveButton.textContent = 'Cadastrar colaborador';
+            }
+        }
+    });
+
+    collaboratorList.addEventListener('click', async event => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+
+        const person = collaboratorsCache.find(item => item.id === button.dataset.id);
+        if (!person) return;
+
+        if (button.dataset.action === 'edit') {
+            document.getElementById('collaboratorId').value = person.id;
+            document.getElementById('collaboratorSector').value = person.sector;
+            document.getElementById('collaboratorName').value = person.name;
+            document.getElementById('collaboratorPhone').value = person.phone;
+
+            document.getElementById('collaboratorSave').textContent =
+                'Salvar alterações';
+            document.getElementById('collaboratorCancel').style.display = 'inline-block';
+
+            collaboratorForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        if (button.dataset.action === 'delete') {
+            if (!confirm(`Deseja realmente excluir ${person.name}?`)) return;
+
+            const { error } = await cloud
+                .from('meeting_collaborators')
+                .delete()
+                .eq('id', person.id);
+
+            if (error) {
+                alert('Não foi possível excluir: ' + error.message);
+                return;
+            }
+
+            await loadCollaborators();
+            alert('Colaborador excluído.');
+        }
+    });
+
+    document.getElementById('collaboratorCancel').addEventListener('click', () => {
+        collaboratorForm.reset();
+        document.getElementById('collaboratorId').value = '';
+        document.getElementById('collaboratorSave').textContent =
+            'Cadastrar colaborador';
+        document.getElementById('collaboratorCancel').style.display = 'none';
+    });
+
+    collaboratorSearch.addEventListener('input', renderCollaborators);
+
+    await loadCollaborators();
+
   }catch(err){console.error('Falha ao validar acesso ao VOSCO MEETING:',err);text.textContent='Não foi possível validar seu acesso. Volte à Inteligência Geográfica e tente novamente.';}
 })();
 </script>
