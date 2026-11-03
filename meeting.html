@@ -55,10 +55,32 @@ button,a{font:inherit}.page{max-width:1500px;margin:0 auto;padding:28px clamp(18
   const text=document.getElementById('authText');
   box.style.display='block';
   try{
-    if(!window.supabase) throw new Error('Não foi possível carregar o serviço de autenticação.');
-    const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    const {data:{session},error}=await client.auth.getSession();
-    if(error) throw error;
+    if(!window.supabase) {
+    throw new Error('Não foi possível carregar o serviço de autenticação.');
+}
+
+const cloud = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+        }
+    }
+);
+
+const { data: { session }, error } = await cloud.auth.getSession();
+
+if(error) throw error;
+
+if(!session) {
+    window.location.href = './index.html';
+    throw new Error('Sessão não encontrada. Faça login no painel principal.');
+}
+
+const cloudUser = session.user;
     if(!session){text.textContent='Sua sessão não foi encontrada. Entre na Inteligência Geográfica e acesse o Modo Reunião pelo menu.';return;}
     const {data:member,error:memberError}=await client.from('vosco_members').select('user_id').eq('user_id',session.user.id).maybeSingle();
     if(memberError||!member){text.textContent='Este usuário não está autorizado a acessar a plataforma VOSCO.';return;}
