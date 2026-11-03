@@ -1323,6 +1323,51 @@ body.client-presentation-mode #clientProjectList {
       </div>
 
       <div id="meetingDemandsList"></div>
+      <!-- DETALHES E ENCAMINHAMENTO DA DEMANDA -->
+<div id="meetingDemandDetails" style="display:none;margin-top:25px;padding:25px;background:#191a1b;border:1px solid #393630;border-radius:12px;">
+
+  <h3 id="meetingDetailTitle" style="color:#eeeae2;">Detalhes da demanda</h3>
+
+  <div id="meetingDetailInfo" style="margin-bottom:25px;color:#aaa;"></div>
+
+  <label style="display:block;margin-bottom:15px;">
+    <span style="display:block;margin-bottom:7px;">Encaminhamento / Ação definida</span>
+    <textarea id="meetingActionDetails" rows="5"
+      placeholder="Descreva detalhadamente o que foi decidido na reunião..."
+      style="width:100%;padding:12px;box-sizing:border-box;"></textarea>
+  </label>
+
+  <label style="display:block;margin-bottom:15px;">
+    <span style="display:block;margin-bottom:7px;">Responsável pela execução</span>
+    <select id="meetingResponsible"
+      style="width:100%;padding:12px;box-sizing:border-box;">
+      <option value="">Selecione o responsável</option>
+    </select>
+  </label>
+
+  <label style="display:block;margin-bottom:15px;">
+    <span style="display:block;margin-bottom:7px;">Data Limite de Entrega (DLE)</span>
+    <input id="meetingDeliveryDeadline" type="date"
+      style="width:100%;padding:12px;box-sizing:border-box;">
+  </label>
+
+  <label style="display:block;margin-bottom:20px;">
+    <span style="display:block;margin-bottom:7px;">Status</span>
+    <select id="meetingDemandStatus"
+      style="width:100%;padding:12px;box-sizing:border-box;">
+      <option value="Aguardando Reunião">Aguardando Reunião</option>
+      <option value="Em Andamento">Em Andamento</option>
+      <option value="Adiada">Adiada</option>
+      <option value="Finalizada">Finalizada</option>
+    </select>
+  </label>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <button class="btn primary" id="saveMeetingDecisionBtn">Salvar encaminhamento</button>
+    <button class="btn" id="closeMeetingDetailsBtn">Voltar às demandas</button>
+  </div>
+
+</div>
     </div>
 
     <div id="meetingTeamPanel" style="display:none">
@@ -1790,7 +1835,8 @@ function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(projects));r
 
 let meetingMembers = [];
 let meetingDemands = [];
-
+let currentMeetingDemandId = null;
+  
 // Carregar colaboradores
 async function loadMeetingMembers() {
   const { data, error } = await cloud
@@ -1873,6 +1919,7 @@ function renderMeetingMembers() {
   `).join('');
   
     updateMeetingRequesterOptions();
+  updateMeetingResponsibleOptions();
 }
 // Atualiza a lista de solicitantes com os colaboradores cadastrados
 function updateMeetingRequesterOptions() {
@@ -1888,7 +1935,20 @@ function updateMeetingRequesterOptions() {
     requesterSelect.appendChild(option);
   });
 }
+// Atualiza a lista de responsáveis pela execução
+function updateMeetingResponsibleOptions() {
+  const responsibleSelect = document.getElementById('meetingResponsible');
+  if (!responsibleSelect) return;
 
+  responsibleSelect.innerHTML = '<option value="">Selecione o responsável</option>';
+
+  meetingMembers.forEach(member => {
+    const option = document.createElement('option');
+    option.value = member.id;
+    option.textContent = `${member.name} — ${member.sector}`;
+    responsibleSelect.appendChild(option);
+  });
+}
 // Atualiza o setor automaticamente conforme o solicitante escolhido
 document.getElementById('meetingDemandRequester').addEventListener('change', function () {
   const selectedMember = meetingMembers.find(member => member.id === this.value);
@@ -1916,10 +1976,10 @@ function renderMeetingDemands() {
   }
 
   container.innerHTML = meetingDemands.map(demand => `
-    <div style="
-      padding:18px 4px;
-      border-bottom:1px solid #30302e;
-    ">
+    <div onclick="openMeetingDemand('${demand.id}')"
+  style="padding:18px 12px;border-bottom:1px solid #30302e;cursor:pointer;border-radius:8px;"
+  onmouseover="this.style.background='#222324'"
+  onmouseout="this.style.background='transparent'">
       <strong style="color:#eeeae2">
         ${escapeHtml(demand.subject)}
       </strong>
@@ -3461,7 +3521,102 @@ const requester = selectedRequester ? selectedRequester.name : '';
     saveMeetingDemandBtn.textContent = 'Salvar demanda';
   }
 });
+  // Salvar encaminhamento da reunião
+const saveMeetingDecisionBtn = document.getElementById('saveMeetingDecisionBtn');
 
+saveMeetingDecisionBtn.addEventListener('click', async () => {
+  if (!currentMeetingDemandId) {
+    toast('Nenhuma demanda selecionada.');
+    return;
+  }
+
+  const demand = meetingDemands.find(item => item.id === currentMeetingDemandId);
+
+  const action_details = document.getElementById('meetingActionDetails').value.trim();
+  const responsible_member_id = document.getElementById('meetingResponsible').value || null;
+  const delivery_deadline = document.getElementById('meetingDeliveryDeadline').value || null;
+  const status = document.getElementById('meetingDemandStatus').value;
+
+  if (!action_details) {
+    toast('Descreva o encaminhamento da reunião.');
+    return;
+  }
+
+  saveMeetingDecisionBtn.disabled = true;
+  saveMeetingDecisionBtn.textContent = 'Salvando...';
+
+  try {
+    const { error } = await cloud
+      .from('vosco_meeting_demands')
+      .update({
+        action_details,
+        responsible_member_id,
+        delivery_deadline,
+        status,
+        updated_by: cloudUser.id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', currentMeetingDemandId);
+
+    if (error) throw error;
+
+    const { error: historyError } = await cloud
+      .from('vosco_meeting_history')
+      .insert([{
+        demand_id: currentMeetingDemandId,
+        action_details,
+        previous_status: demand.status,
+        new_status: status,
+        responsible_member_id,
+        delivery_deadline,
+        changed_by: cloudUser.id
+      }]);
+
+    if (historyError) throw historyError;
+
+    await loadMeetingDemands();
+
+    document.getElementById('meetingDemandDetails').style.display = 'none';
+    document.getElementById('meetingDemandsPanel').style.display = 'block';
+
+    currentMeetingDemandId = null;
+
+    toast('Encaminhamento e histórico salvos com sucesso.');
+
+  } catch (error) {
+    console.error('Erro ao salvar encaminhamento:', error);
+    toast('Não foi possível salvar o encaminhamento.');
+  } finally {
+    saveMeetingDecisionBtn.disabled = false;
+    saveMeetingDecisionBtn.textContent = 'Salvar encaminhamento';
+  }
+});
+// Abre uma demanda para discussão durante a reunião
+function openMeetingDemand(demandId) {
+  const demand = meetingDemands.find(item => item.id === demandId);
+  currentMeetingDemandId = demandId;
+
+  if (!demand) {
+    toast('Demanda não encontrada.');
+    return;
+  }
+
+  document.getElementById('meetingDemandsPanel').style.display = 'none';
+  document.getElementById('meetingDemandDetails').style.display = 'block';
+
+  document.getElementById('meetingDetailTitle').textContent = demand.subject;
+
+  document.getElementById('meetingDetailInfo').innerHTML = `
+    <div><strong>Solicitante:</strong> ${escapeHtml(demand.requester)}</div>
+    <div style="margin-top:6px"><strong>Setor:</strong> ${escapeHtml(demand.requesting_sector)}</div>
+    <div style="margin-top:6px"><strong>Prioridade:</strong> ${escapeHtml(demand.priority)}</div>
+  `;
+
+  document.getElementById('meetingActionDetails').value = demand.action_details || '';
+  document.getElementById('meetingResponsible').value = demand.responsible_member_id || '';
+  document.getElementById('meetingDeliveryDeadline').value = demand.delivery_deadline || '';
+  document.getElementById('meetingDemandStatus').value = demand.status || 'Aguardando Reunião';
+}
  // ============================================
  // VOSCO — SALVAR COLABORADOR
  // ============================================
