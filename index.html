@@ -1253,6 +1253,61 @@ body.client-presentation-mode #clientProjectList {
     </div>
 
     <div id="meetingTeamPanel" style="display:none">
+      
+<div id="meetingMemberForm" style="
+  display:none;
+  margin-bottom:25px;
+  padding:24px;
+  background:#191a1b;
+  border:1px solid #45423d;
+  border-radius:7px;
+">
+  <h3 style="margin-top:0;color:#eeeae2">
+    Cadastrar colaborador
+  </h3>
+
+  <div style="display:grid;gap:16px;max-width:600px">
+
+    <label>
+      <span style="display:block;margin-bottom:7px">Nome completo</span>
+      <input id="meetingMemberName" type="text"
+        placeholder="Nome do colaborador"
+        style="width:100%;padding:12px;box-sizing:border-box">
+    </label>
+
+    <label>
+      <span style="display:block;margin-bottom:7px">Setor</span>
+      <select id="meetingMemberSector"
+        style="width:100%;padding:12px;box-sizing:border-box">
+        <option value="">Selecione o setor</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Executivo">Executivo</option>
+        <option value="Financeiro">Financeiro</option>
+        <option value="Montagem">Montagem</option>
+        <option value="Pós Vendas">Pós Vendas</option>
+      </select>
+    </label>
+
+    <label>
+      <span style="display:block;margin-bottom:7px">Telefone com DDD</span>
+      <input id="meetingMemberPhone" type="tel"
+        placeholder="(11) 99999-9999"
+        maxlength="15"
+        style="width:100%;padding:12px;box-sizing:border-box">
+    </label>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn primary" id="saveMeetingMemberBtn">
+        Salvar colaborador
+      </button>
+      <button class="btn" id="cancelMeetingMemberBtn">
+        Cancelar
+      </button>
+    </div>
+
+  </div>
+</div>
+
       <div class="meeting-panel-heading">
         <div>
           <h3>Equipe VOSCO</h3>
@@ -3187,6 +3242,96 @@ meetingModeBtn.addEventListener('click', async () => {
 // Voltar ao Painel Geográfico
 closeMeetingModeBtn.addEventListener('click', () => {
   meetingModeView.style.display = 'none';
+});
+
+// ============================================
+// VOSCO — ABRIR E FECHAR FORMULÁRIO
+// DE COLABORADORES
+// ============================================
+
+const newMeetingMemberBtn = document.getElementById('newMeetingMemberBtn');
+const meetingMemberForm = document.getElementById('meetingMemberForm');
+const cancelMeetingMemberBtn = document.getElementById('cancelMeetingMemberBtn');
+
+newMeetingMemberBtn.addEventListener('click', () => {
+  meetingMemberForm.style.display = 'block';
+  document.getElementById('meetingMemberName').focus();
+});
+
+cancelMeetingMemberBtn.addEventListener('click', () => {
+  meetingMemberForm.style.display = 'none';
+
+  document.getElementById('meetingMemberName').value = '';
+  document.getElementById('meetingMemberSector').value = '';
+  document.getElementById('meetingMemberPhone').value = '';
+});
+
+ // ============================================
+ // VOSCO — SALVAR COLABORADOR
+ // ============================================
+
+const saveMeetingMemberBtn = document.getElementById('saveMeetingMemberBtn');
+
+saveMeetingMemberBtn.addEventListener('click', async () => {
+  const name = document.getElementById('meetingMemberName').value.trim();
+  const sector = document.getElementById('meetingMemberSector').value;
+  const phoneInput = document.getElementById('meetingMemberPhone').value;
+
+  let phone = phoneInput.replace(/\D/g, '');
+
+  if (!name || !sector || !phone) {
+    toast('Preencha todos os campos.');
+    return;
+  }
+
+  // Adiciona o código do Brasil quando necessário
+  if (phone.length === 10 || phone.length === 11) {
+    phone = '55' + phone;
+  }
+
+  // Validação: 55 + DDD + telefone
+  if (!/^55[1-9]{2}9?\d{8}$/.test(phone)) {
+    toast('Confira o telefone e o DDD informado.');
+    return;
+  }
+
+  saveMeetingMemberBtn.disabled = true;
+  saveMeetingMemberBtn.textContent = 'Salvando...';
+
+  try {
+    const { data, error } = await cloud
+      .from('vosco_meeting_members')
+      .insert([{
+        name,
+        sector,
+        phone,
+        created_by: cloudUser.id
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    meetingMembers.push(data);
+
+    meetingMembers.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+    renderMeetingMembers();
+
+    meetingMemberForm.style.display = 'none';
+    document.getElementById('meetingMemberName').value = '';
+    document.getElementById('meetingMemberSector').value = '';
+    document.getElementById('meetingMemberPhone').value = '';
+
+    toast('Colaborador cadastrado com sucesso.');
+
+  } catch (error) {
+    console.error('Erro ao salvar colaborador:', error);
+    toast('Não foi possível salvar o colaborador.');
+  } finally {
+    saveMeetingMemberBtn.disabled = false;
+    saveMeetingMemberBtn.textContent = 'Salvar colaborador';
+  }
 });
 
 // Alternar entre as abas
