@@ -1976,28 +1976,40 @@ function renderMeetingDemands() {
   }
 
   container.innerHTML = meetingDemands.map(demand => `
-    <div onclick="openMeetingDemand('${demand.id}')"
-  style="padding:18px 12px;border-bottom:1px solid #30302e;cursor:pointer;border-radius:8px;"
-  onmouseover="this.style.background='#222324'"
-  onmouseout="this.style.background='transparent'">
+    <div data-demand-id="${escapeHtml(demand.id)}"
+      style="padding:18px 12px;border-bottom:1px solid #30302e;cursor:pointer;border-radius:8px;"
+      onmouseover="this.style.background='#222324'"
+      onmouseout="this.style.background='transparent'">
+
       <strong style="color:#eeeae2">
         ${escapeHtml(demand.subject)}
       </strong>
+
       <div style="margin-top:8px;color:#b8a078">
         ${escapeHtml(demand.requesting_sector)}
       </div>
+
       <div style="margin-top:6px;color:#aaa">
         Solicitante: ${escapeHtml(demand.requester)}
       </div>
+
       <div style="margin-top:6px;color:#aaa">
         Prioridade: ${escapeHtml(demand.priority)}
         &nbsp; | &nbsp;
         Status: ${escapeHtml(demand.status)}
       </div>
+
     </div>
   `).join('');
-}
 
+  // Vincula o clique diretamente aos elementos criados
+  container.querySelectorAll('[data-demand-id]').forEach(element => {
+    element.addEventListener('click', () => {
+      openMeetingDemand(element.dataset.demandId);
+    });
+  });
+}
+  
 async function loadCloudProjects(){const {data,error}=await cloud.from('vosco_projects').select('id,data,updated_at').order('updated_at',{ascending:false});if(error)throw error;projects=(data||[]).map(row=>({...row.data,id:row.id}));localStorage.setItem(STORAGE_KEY,JSON.stringify(projects));render();$('saveState').textContent='● Base compartilhada conectada'}
 async function initializeProjects(){if(!CLOUD_CONFIGURED){$('cloudGateError').textContent='O painel ainda precisa ser conectado ao projeto Supabase. Consulte o guia de implantação incluído no pacote.';$('cloudLoginForm').querySelector('button').disabled=true;return}try{const recoveryLink =
   window.location.hash.includes('type=recovery') ||
@@ -3593,7 +3605,6 @@ saveMeetingDecisionBtn.addEventListener('click', async () => {
 });
 // Abre uma demanda para discussão durante a reunião
 function openMeetingDemand(demandId) {
-  alert('Clique detectado! ID: ' + demandId);
   const demand = meetingDemands.find(item => item.id === demandId);
   currentMeetingDemandId = demandId;
 
