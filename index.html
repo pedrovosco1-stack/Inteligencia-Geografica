@@ -3539,7 +3539,10 @@ const closeMeetingDetailsBtn = document.getElementById('closeMeetingDetailsBtn')
 
 closeMeetingDetailsBtn.addEventListener('click', () => {
   document.getElementById('meetingDemandDetails').style.display = 'none';
-  document.getElementById('meetingDemandsPanel').style.display = 'block';
+  document.getElementById('meetingDemandsList').style.display = 'block';
+
+  const demandHeading = document.querySelector('#meetingDemandsPanel .meeting-panel-heading');
+  if (demandHeading) demandHeading.style.display = 'flex';
 
   currentMeetingDemandId = null;
 });
@@ -3622,8 +3625,14 @@ function openMeetingDemand(demandId) {
     return;
   }
 
-  document.getElementById('meetingDemandsPanel').style.display = 'none';
-  document.getElementById('meetingDemandDetails').style.display = 'block';
+document.getElementById('meetingDemandsList').style.display = 'none';
+document.getElementById('meetingDemandDetails').style.display = 'block';
+
+const demandHeading = document.querySelector('#meetingDemandsPanel .meeting-panel-heading');
+if (demandHeading) demandHeading.style.display = 'none';
+
+const demandHeading = document.querySelector('#meetingDemandsPanel .meeting-panel-heading');
+if (demandHeading) demandHeading.style.display = 'none';
 
   document.getElementById('meetingDetailTitle').textContent = demand.subject;
 
