@@ -80,9 +80,12 @@ if(!session) {
     throw new Error('Sessão não encontrada. Faça login no painel principal.');
 }
 
+   if(!session){
+    text.textContent='Sua sessão não foi encontrada. Entre na Inteligência Geográfica e acesse o Modo Reunião pelo menu.';
+    return;
+}
 const cloudUser = session.user;
-    if(!session){text.textContent='Sua sessão não foi encontrada. Entre na Inteligência Geográfica e acesse o Modo Reunião pelo menu.';return;}
-    const {data:member,error:memberError}=await client.from('vosco_members').select('user_id').eq('user_id',session.user.id).maybeSingle();
+    const {data:member,error:memberError}=await cloud.from('vosco_members').select('user_id').eq('user_id',session.user.id).maybeSingle();
     if(memberError||!member){text.textContent='Este usuário não está autorizado a acessar a plataforma VOSCO.';return;}
     box.style.display='none';
     document.getElementById('meetingApp').style.display='block';
