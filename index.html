@@ -1257,24 +1257,25 @@ body.client-presentation-mode #clientProjectList {
 
     <label>
       <span style="display:block;margin-bottom:7px">Setor solicitante</span>
-      <select id="meetingDemandSector"
-        style="width:100%;padding:12px;box-sizing:border-box">
-        <option value="">Selecione o setor</option>
-        <option value="Comercial">Comercial</option>
-        <option value="Executivo">Executivo</option>
-        <option value="Financeiro">Financeiro</option>
-        <option value="Montagem">Montagem</option>
-        <option value="Pós Vendas">Pós Vendas</option>
-      </select>
+      <select id="meetingDemandSector" disabled
+  style="width:100%;padding:12px;box-sizing:border-box">
+  <option value="">Selecione primeiro o solicitante</option>
+  <option value="Comercial">Comercial</option>
+  <option value="Executivo">Executivo</option>
+  <option value="Financeiro">Financeiro</option>
+  <option value="Montagem">Montagem</option>
+  <option value="Pós Vendas">Pós Vendas</option>
+</select>
     </label>
 
     <label>
-      <span style="display:block;margin-bottom:7px">Solicitante</span>
-      <input id="meetingDemandRequester" type="text"
-        placeholder="Nome de quem está solicitando"
-        style="width:100%;padding:12px;box-sizing:border-box">
-    </label>
-
+  <span style="display:block;margin-bottom:7px">Solicitante</span>
+  <select id="meetingDemandRequester"
+    style="width:100%;padding:12px;box-sizing:border-box">
+    <option value="">Selecione um colaborador</option>
+  </select>
+  </label>
+    
     <label>
       <span style="display:block;margin-bottom:7px">Assunto</span>
       <textarea id="meetingDemandSubject"
@@ -1870,8 +1871,31 @@ function renderMeetingMembers() {
       </div>
     </div>
   `).join('');
+  
+    updateMeetingRequesterOptions();
+}
+// Atualiza a lista de solicitantes com os colaboradores cadastrados
+function updateMeetingRequesterOptions() {
+  const requesterSelect = document.getElementById('meetingDemandRequester');
+  if (!requesterSelect) return;
+
+  requesterSelect.innerHTML = '<option value="">Selecione um colaborador</option>';
+
+  meetingMembers.forEach(member => {
+    const option = document.createElement('option');
+    option.value = member.id;
+    option.textContent = `${member.name} — ${member.sector}`;
+    requesterSelect.appendChild(option);
+  });
 }
 
+// Atualiza o setor automaticamente conforme o solicitante escolhido
+document.getElementById('meetingDemandRequester').addEventListener('change', function () {
+  const selectedMember = meetingMembers.find(member => member.id === this.value);
+  document.getElementById('meetingDemandSector').value = selectedMember
+    ? selectedMember.sector
+    : '';
+});
 // ============================================
 // VOSCO — EXIBIÇÃO DAS DEMANDAS
 // ============================================
@@ -3378,8 +3402,14 @@ cancelMeetingDemandBtn.addEventListener('click', () => {
 const saveMeetingDemandBtn = document.getElementById('saveMeetingDemandBtn');
 
 saveMeetingDemandBtn.addEventListener('click', async () => {
-  const requesting_sector = document.getElementById('meetingDemandSector').value;
-  const requester = document.getElementById('meetingDemandRequester').value.trim();
+  const requesterId = document.getElementById('meetingDemandRequester').value;
+
+const selectedRequester = meetingMembers.find(
+  member => member.id === requesterId
+);
+
+const requesting_sector = selectedRequester ? selectedRequester.sector : '';
+const requester = selectedRequester ? selectedRequester.name : '';
   const subject = document.getElementById('meetingDemandSubject').value.trim();
   const priority = document.getElementById('meetingDemandPriority').value;
   const opened_on = document.getElementById('meetingDemandOpenedOn').value;
