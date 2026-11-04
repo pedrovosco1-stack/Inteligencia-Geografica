@@ -3062,6 +3062,7 @@ $('signOutBtn').onclick=async()=>{if(cloud)await cloud.auth.signOut();};
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
 }
+
 function setExecutiveMode(on) {
   document.body.classList.toggle('executive-mode', on);
 
@@ -3074,18 +3075,31 @@ function setExecutiveMode(on) {
     on ? 'Voltar ao painel principal' : ''
   );
 
+  if (on) {
+    const voscoHome = document.getElementById('voscoHome');
+    if (voscoHome) voscoHome.classList.remove('is-visible');
+  } else {
+    const voscoHome = document.getElementById('voscoHome');
+    const mainApp = document.getElementById('mainApp');
+
+    if (voscoHome) voscoHome.classList.add('is-visible');
+    if (mainApp) mainApp.classList.add('vosco-home-active');
+  }
+
   if (on) resetPageScroll();
 
- setTimeout(() => {
-  map.invalidateSize(true);
-  drawMap();
-  drawShowrooms();
-  if (on) {
-    drawExecutiveProjectionChart();
-    resetPageScroll();
-  }
-}, 150);
-}
+  setTimeout(() => {
+    map.invalidateSize(true);
+    drawMap();
+    drawShowrooms();
+
+    if (on) {
+      drawExecutiveProjectionChart();
+      resetPageScroll();
+    }
+  }, 150);
+}  
+  
 $('execModeBtn').onclick=()=>setExecutiveMode(!document.body.classList.contains('executive-mode'));
 const passwordInput = $('cloudPassword');
 const togglePassword = $('togglePassword');
