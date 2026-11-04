@@ -1059,7 +1059,10 @@ body.client-presentation-mode #clientProjectList {
     gap: 22px;
   }
 }
-
+/* Ocultar controles e créditos do mapa na Central de Gestão */
+body:has(#voscoHome.is-visible) .leaflet-control-container {
+  display: none !important;
+}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111111">
