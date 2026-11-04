@@ -1896,7 +1896,72 @@ function escapeHtml(value) {
 // ============================================
 // VOSCO — EXIBIÇÃO DOS COLABORADORES
 // ============================================
+  
+ // VOSCO — EDITAR COLABORADOR
+function editMeetingMember(memberId) {
+  const member = meetingMembers.find(item => item.id === memberId);
 
+  if (!member) {
+    toast('Colaborador não encontrado.');
+    return;
+  }
+
+  // Reutiliza o formulário de cadastro
+  document.getElementById('meetingMemberForm').style.display = 'block';
+
+  document.getElementById('meetingMemberName').value = member.name;
+  document.getElementById('meetingMemberSector').value = member.sector;
+  document.getElementById('meetingMemberPhone').value = member.phone.replace(/^55/, '');
+
+  document.getElementById('meetingMemberForm').dataset.editingId = member.id;
+
+  document.querySelector('#meetingMemberForm h3').textContent = 'Editar colaborador';
+
+  document.getElementById('saveMeetingMemberBtn').textContent = 'Salvar alterações';
+
+  document.getElementById('meetingMemberName').focus();
+}
+// VOSCO — EXCLUIR COLABORADOR
+async function deleteMeetingMember(memberId) {
+  const member = meetingMembers.find(item => item.id === memberId);
+
+  if (!member) {
+    toast('Colaborador não encontrado.');
+    return;
+  }
+
+  const confirmed = confirm(
+    `Deseja realmente excluir o colaborador ${member.name}?\n\n` +
+    'O cadastro será removido. As demandas e os históricos serão preservados, mas o vínculo de responsabilidade com esse colaborador será removido.'
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const { error } = await cloud
+      .from('vosco_meeting_members')
+      .delete()
+      .eq('id', memberId);
+
+    if (error) throw error;
+
+    meetingMembers = meetingMembers.filter(
+      item => item.id !== memberId
+    );
+
+    await Promise.all([
+      loadMeetingMembers(),
+      loadMeetingDemands()
+    ]);
+
+    toast('Colaborador excluído com sucesso.');
+
+  } catch (error) {
+    console.error('Erro ao excluir colaborador:', error);
+    toast('Não foi possível excluir o colaborador.');
+  }
+}
+  
 function renderMeetingMembers() {
   const container = document.getElementById('meetingMembersList');
 
@@ -1913,29 +1978,47 @@ function renderMeetingMembers() {
   }
 
   container.innerHTML = meetingMembers.map(member => `
-    <div style="
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:15px;
-      padding:16px 4px;
-      border-bottom:1px solid #30302e;
-    ">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:15px;padding:16px 4px;border-bottom:1px solid #30302e;flex-wrap:wrap;">
+
       <div>
         <strong style="color:#eeeae2">${escapeHtml(member.name)}</strong>
-        <div style="margin-top:6px;color:#b8a078">
-          ${escapeHtml(member.sector)}
-        </div>
+        <div style="margin-top:6px;color:#b8a078">${escapeHtml(member.sector)}</div>
+        <div style="margin-top:6px;color:#aaa">${escapeHtml(member.phone)}</div>
       </div>
-      <div style="color:#aaa">
-        ${escapeHtml(member.phone)}
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn"
+          data-edit-member="${escapeHtml(member.id)}"
+          style="padding:8px 14px;">
+          Editar
+        </button>
+
+        <button class="btn"
+          data-delete-member="${escapeHtml(member.id)}"
+          style="padding:8px 14px;background:#722f2f;color:#fff;border:1px solid #a34b4b;">
+          Excluir
+        </button>
       </div>
+
     </div>
   `).join('');
-  
-    updateMeetingRequesterOptions();
+
+  container.querySelectorAll('[data-edit-member]').forEach(button => {
+    button.addEventListener('click', () => {
+      editMeetingMember(button.dataset.editMember);
+    });
+  });
+
+  container.querySelectorAll('[data-delete-member]').forEach(button => {
+    button.addEventListener('click', () => {
+      deleteMeetingMember(button.dataset.deleteMember);
+    });
+  });
+
+  updateMeetingRequesterOptions();
   updateMeetingResponsibleOptions();
 }
+  
 // Atualiza a lista de solicitantes com os colaboradores cadastrados
 function updateMeetingRequesterOptions() {
   const requesterSelect = document.getElementById('meetingDemandRequester');
@@ -3825,46 +3908,75 @@ saveMeetingMemberBtn.addEventListener('click', async () => {
     return;
   }
 
-  // Adiciona o código do Brasil quando necessário
-  if (phone.length === 10 || phone.length === 11) {
+  if (phone.startsWith('55') && (phone.length === 12 || phone.length === 13)) {
+    // Telefone já contém o código do Brasil
+  } else if (phone.length === 10 || phone.length === 11) {
     phone = '55' + phone;
   }
 
-  // Validação: 55 + DDD + telefone
   if (!/^55[1-9]{2}9?\d{8}$/.test(phone)) {
     toast('Confira o telefone e o DDD informado.');
     return;
   }
 
+  const editingId = meetingMemberForm.dataset.editingId;
+
   saveMeetingMemberBtn.disabled = true;
   saveMeetingMemberBtn.textContent = 'Salvando...';
 
   try {
-    const { data, error } = await cloud
-      .from('vosco_meeting_members')
-      .insert([{
-        name,
-        sector,
-        phone,
-        created_by: cloudUser.id
-      }])
-      .select()
-      .single();
+    let savedMember;
 
-    if (error) throw error;
+    if (editingId) {
+      const { data, error } = await cloud
+        .from('vosco_meeting_members')
+        .update({ name, sector, phone })
+        .eq('id', editingId)
+        .select()
+        .single();
 
-    meetingMembers.push(data);
+      if (error) throw error;
+
+      savedMember = data;
+
+      meetingMembers = meetingMembers.map(member =>
+        member.id === editingId ? savedMember : member
+      );
+
+    } else {
+      const { data, error } = await cloud
+        .from('vosco_meeting_members')
+        .insert([{
+          name,
+          sector,
+          phone,
+          created_by: cloudUser.id
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      savedMember = data;
+      meetingMembers.push(savedMember);
+    }
 
     meetingMembers.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
     renderMeetingMembers();
 
     meetingMemberForm.style.display = 'none';
+    meetingMemberForm.dataset.editingId = '';
+
     document.getElementById('meetingMemberName').value = '';
     document.getElementById('meetingMemberSector').value = '';
     document.getElementById('meetingMemberPhone').value = '';
 
-    toast('Colaborador cadastrado com sucesso.');
+    document.querySelector('#meetingMemberForm h3').textContent = 'Cadastrar colaborador';
+
+    toast(editingId
+      ? 'Colaborador atualizado com sucesso.'
+      : 'Colaborador cadastrado com sucesso.');
 
   } catch (error) {
     console.error('Erro ao salvar colaborador:', error);
@@ -3874,7 +3986,7 @@ saveMeetingMemberBtn.addEventListener('click', async () => {
     saveMeetingMemberBtn.textContent = 'Salvar colaborador';
   }
 });
-
+  
 // Alternar entre as abas
 meetingDemandsTab.addEventListener('click', () => {
   meetingDemandsPanel.style.display = 'block';
