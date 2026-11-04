@@ -2970,7 +2970,15 @@ if (document.body.classList.contains('client-presentation-mode')) {
 }
 }
 function toast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3200)}
-function openForm(p=null){editingId=p?.id||null;$('projectForm').reset();$('formTitle').textContent=p?'Editar projeto':'Cadastrar projeto';if(p){$('fName').value=p.name||'';$('fCity').value=p.city||'';$('fStatus').value=p.status||'Planejado';$('fStage').value=p.stage||((p.status==='Finalizado')?'Fechado':'Oportunidade');$('fStart').value=p.start||'';$('fEnd').value=p.end||'';$('fSource').value=p.source||'';$('fValue').value=p.value!==''&&p.value!=null?money(p.value):'';$('fLat').value=p.lat??'';$('fLng').value=p.lng??'';$('fNotes').value=p.notes||'';$('fStreet').value=p.street||p.address||'';$('fNumber').value=p.number||'';$('fNeighborhood').value=p.neighborhood||'';$('fCep').value=p.cep||''}else{$('fCity').value='';$('fLat').value='';$('fLng').value='';$('fStage').value='Oportunidade'}$('projectModal').classList.add('open')}
+function openForm(p=null){
+
+  const voscoHome = document.getElementById('voscoHome');
+                          
+if (voscoHome) {
+  voscoHome.classList.add('is-visible');
+}
+
+editingId=p?.id||null;$('projectForm').reset();$('formTitle').textContent=p?'Editar projeto':'Cadastrar projeto';if(p){$('fName').value=p.name||'';$('fCity').value=p.city||'';$('fStatus').value=p.status||'Planejado';$('fStage').value=p.stage||((p.status==='Finalizado')?'Fechado':'Oportunidade');$('fStart').value=p.start||'';$('fEnd').value=p.end||'';$('fSource').value=p.source||'';$('fValue').value=p.value!==''&&p.value!=null?money(p.value):'';$('fLat').value=p.lat??'';$('fLng').value=p.lng??'';$('fNotes').value=p.notes||'';$('fStreet').value=p.street||p.address||'';$('fNumber').value=p.number||'';$('fNeighborhood').value=p.neighborhood||'';$('fCep').value=p.cep||''}else{$('fCity').value='';$('fLat').value='';$('fLng').value='';$('fStage').value='Oportunidade'}$('projectModal').classList.add('open')}
 function closeForm(){$('projectModal').classList.remove('open')}
 $('fValue').addEventListener('blur',()=>{const v=parseMoney($('fValue').value);$('fValue').value=v===''?'':money(v)});
 $('fValue').addEventListener('focus',()=>{const v=parseMoney($('fValue').value);$('fValue').value=v===''?'':String(v).replace('.',',')});
