@@ -4401,13 +4401,20 @@ document.addEventListener('click', function(event) {
     return;
   }
 
-  if (targetId !== 'signOutBtn') {
-    const home = document.getElementById('voscoHome');
-    const app = document.getElementById('mainApp');
+  if (targetId === 'addBtn') {
+  const home = document.getElementById('voscoHome');
 
-    home.classList.remove('is-visible');
-    app.classList.remove('vosco-home-active');
+  if (home) {
+    home.classList.add('is-visible');
   }
+}
+else if (targetId !== 'signOutBtn') {
+  const home = document.getElementById('voscoHome');
+  const app = document.getElementById('mainApp');
+
+  if (home) home.classList.remove('is-visible');
+  if (app) app.classList.remove('vosco-home-active');
+}
 
   originalButton.click();
 });
