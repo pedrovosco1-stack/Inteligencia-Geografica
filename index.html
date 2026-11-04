@@ -1539,8 +1539,8 @@ body.client-presentation-mode #clientProjectList {
     </div>
 
     <button class="btn" id="closeMeetingModeBtn">
-      Voltar ao Painel
-    </button>
+  Voltar à Central de Gestão
+</button>
   </header>
 
   <div class="meeting-content">
@@ -3848,9 +3848,20 @@ meetingModeBtn.addEventListener('click', async () => {
   }
 });
 
-// Voltar ao Painel Geográfico
+// Voltar à Central de Gestão
 closeMeetingModeBtn.addEventListener('click', () => {
   meetingModeView.style.display = 'none';
+
+  const voscoHome = document.getElementById('voscoHome');
+  const mainApp = document.getElementById('mainApp');
+
+  if (voscoHome) {
+    voscoHome.classList.add('is-visible');
+  }
+
+  if (mainApp) {
+    mainApp.classList.add('vosco-home-active');
+  }
 });
 
 // ============================================
