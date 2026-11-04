@@ -3825,6 +3825,15 @@ const meetingTeamPanel = document.getElementById('meetingTeamPanel');
 // Abrir Modo Reunião
 
 meetingModeBtn.addEventListener('click', async () => {
+
+  // Esconde a Central de Gestão
+  const voscoHome = document.getElementById('voscoHome');
+
+  if (voscoHome) {
+    voscoHome.classList.remove('is-visible');
+  }
+
+  // Abre o Modo Reunião
   meetingModeView.style.display = 'block';
 
   const demandsList = document.getElementById('meetingDemandsList');
@@ -3847,7 +3856,7 @@ meetingModeBtn.addEventListener('click', async () => {
     toast('Falha ao carregar os dados do Modo Reunião.');
   }
 });
-
+  
 // Voltar à Central de Gestão
 closeMeetingModeBtn.addEventListener('click', () => {
   meetingModeView.style.display = 'none';
