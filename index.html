@@ -3478,9 +3478,22 @@ function showCulturaVosco() {
 
 function hideCulturaVosco() {
   document.body.classList.remove('culture-vosco-mode');
-  $('culturaVoscoView').style.display = 'none';
-}
 
+  $('culturaVoscoView').style.display = 'none';
+
+  // Retorna à Central de Gestão
+  const voscoHome = document.getElementById('voscoHome');
+  const mainApp = document.getElementById('mainApp');
+
+  if (voscoHome) {
+    voscoHome.classList.add('is-visible');
+  }
+
+  if (mainApp) {
+    mainApp.classList.add('vosco-home-active');
+  }
+}
+  
 $('culturaVoscoBtn').onclick = showCulturaVosco;
 $('exitCulturaVoscoBtn').onclick = hideCulturaVosco;
 $('exitClientPresentationBtn').onclick = hideClientPresentation;
