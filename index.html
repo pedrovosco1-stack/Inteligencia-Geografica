@@ -6,6 +6,10 @@
 <title>VOSCO | Inteligência Geográfica</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
+/* Evita mostrar o login durante a verificação da sessão */
+body:not(.app-initialized) #cloudGate {
+  display: none !important;
+}
 :root{--bg:#101214;--panel:#191c20;--panel2:#202429;--line:#30353b;--text:#f2f0eb;--muted:#a8adb3;--gold:#b8a078;--green:#24a879;--blue:#4d9ce8;--amber:#d5a144;--gray:#9298a0;--purple:#a38bdf}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif}
 button,input,select,textarea{font:inherit}button{cursor:pointer}
@@ -2438,7 +2442,12 @@ async function initializeProjects(){if(!CLOUD_CONFIGURED){$('cloudGateError').te
   new URLSearchParams(window.location.search).get('type') === 'recovery';cloud=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data:{session}}=await cloud.auth.getSession();if(session && !recoveryLink){
   cloudUser=session.user;
   await enterCloudApp();
-}cloud.auth.onAuthStateChange(async(event,session)=>{if (event === 'PASSWORD_RECOVERY') {
+}
+
+// A verificação inicial terminou
+document.body.classList.add('app-initialized');
+
+cloud.auth.onAuthStateChange(async(event,session)=>{if (event === 'PASSWORD_RECOVERY') {
   $('mainApp').style.display = 'none';
   $('cloudGate').style.display = 'grid';
   $('cloudLoginForm').style.display = 'none';
