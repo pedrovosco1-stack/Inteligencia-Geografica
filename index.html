@@ -4357,24 +4357,31 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
       .catch(error => console.error('Falha ao registrar o aplicativo VOSCO:', error));
   });
 }
-// Conecta os cartões da Central de Gestão aos botões originais
-document.querySelectorAll('#voscoHome [data-target]').forEach(card => {
-  card.addEventListener('click', () => {
-    const targetId = card.dataset.target;
-    const originalButton = document.getElementById(targetId);
+// Conexão dos cartões da Central de Gestão
+document.addEventListener('click', function(event) {
+  const card = event.target.closest('#voscoHome [data-target]');
 
-    if (!originalButton) {
-      console.warn('Botão original não encontrado:', targetId);
-      return;
-    }
+  if (!card) return;
 
-    if (targetId !== 'signOutBtn') {
-      $('voscoHome').classList.remove('is-visible');
-      $('mainApp').classList.remove('vosco-home-active');
-    }
+  event.preventDefault();
 
-    originalButton.click();
-  });
+  const targetId = card.getAttribute('data-target');
+  const originalButton = document.getElementById(targetId);
+
+  if (!originalButton) {
+    console.error('Botão original não encontrado:', targetId);
+    return;
+  }
+
+  if (targetId !== 'signOutBtn') {
+    const home = document.getElementById('voscoHome');
+    const app = document.getElementById('mainApp');
+
+    home.classList.remove('is-visible');
+    app.classList.remove('vosco-home-active');
+  }
+
+  originalButton.click();
 });
 </script>
 </body>
