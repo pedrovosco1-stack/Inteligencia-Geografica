@@ -2756,7 +2756,6 @@ async function loadMunicipalBoundaries(forceRefresh=false){
     try{await geoCacheSet(GEO_CACHE_KEY,municipalFeatures)}catch(e){console.warn('Não foi possível armazenar o cache geográfico.',e)}
     $('saveState').textContent=`● Limites oficiais atualizados (${municipalFeatures.length})`;
     const failures=results.length-fresh.length;
-    toast(`Limites municipais atualizados: ${fresh.length} de ${selected.length} cidades.${failures?` ${failures} não carregaram nesta tentativa.`:''}`);
     setTimeout(()=>{try{map.invalidateSize(true)}catch(e){}},100);
     render();
   }catch(err){
