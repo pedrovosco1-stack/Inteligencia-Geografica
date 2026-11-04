@@ -3446,6 +3446,19 @@ function showClientPresentation() {
 function hideClientPresentation() {
   document.body.classList.remove('client-presentation-mode');
 
+  // Retorna à Central de Gestão
+  const voscoHome = document.getElementById('voscoHome');
+  const mainApp = document.getElementById('mainApp');
+
+  if (voscoHome) {
+    voscoHome.classList.add('is-visible');
+  }
+
+  if (mainApp) {
+    mainApp.classList.add('vosco-home-active');
+  }
+
+  // Preserva a atualização do mapa administrativo
   setTimeout(() => {
     try {
       map.invalidateSize(true);
@@ -3455,7 +3468,6 @@ function hideClientPresentation() {
     }
   }, 200);
 }
-
 $('clientPresentationBtn').onclick = showClientPresentation;
 
 function showCulturaVosco() {
