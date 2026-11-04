@@ -4443,7 +4443,13 @@ document.addEventListener('click', function(event) {
     return;
   }
 
-  if (targetId === 'addBtn') {
+  if (
+  targetId === 'addBtn' ||
+  targetId === 'executivePdfBtn' ||
+  targetId === 'exportBtn' ||
+  targetId === 'importBtn' ||
+  targetId === 'exportCsvBtn'
+) {
   const home = document.getElementById('voscoHome');
 
   if (home) {
