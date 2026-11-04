@@ -3045,7 +3045,15 @@ A posição parece correta?`);if(!confirmLocation)throw new Error('Cadastro canc
   if(editingId)projects=projects.map(x=>x.id===editingId?p:x);else projects.push(p);closeForm();save();toast(editingId?'Projeto atualizado.':'Projeto cadastrado e localizado no mapa.');if($('pole').value!=='all'&&$('pole').value!==pole)$('pole').value=pole;render();map.setView([Number(p.lat),Number(p.lng)],16);
 });
 window.voscoEdit=id=>{let p=projects.find(x=>x.id===id);if(p)openForm(p)};
-function manage(){let list=activeProjects();$('manageContent').innerHTML=list.length?`<div class="table-wrap"><table><thead><tr><th>Projeto</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead><tbody>${list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.city)}</td><td>${esc(p.status)}</td><td><button class="btn small" onclick="window.voscoEdit('${p.id}');document.getElementById('manageModal').classList.remove('open')">Editar</button> <button class="btn small" onclick="window.voscoDelete('${p.id}')">Excluir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhum projeto corresponde aos filtros atuais.</div>';$('manageModal').classList.add('open')}
+function manage(){
+  
+const voscoHome = document.getElementById('voscoHome');
+
+if (voscoHome) {
+  voscoHome.classList.add('is-visible');
+}
+  
+let list=activeProjects();$('manageContent').innerHTML=list.length?`<div class="table-wrap"><table><thead><tr><th>Projeto</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead><tbody>${list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.city)}</td><td>${esc(p.status)}</td><td><button class="btn small" onclick="window.voscoEdit('${p.id}');document.getElementById('manageModal').classList.remove('open')">Editar</button> <button class="btn small" onclick="window.voscoDelete('${p.id}')">Excluir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhum projeto corresponde aos filtros atuais.</div>';$('manageModal').classList.add('open')}
 window.voscoDelete=async id=>{const p=projects.find(x=>String(x.id)===String(id));if(!p)return;if(!confirm('Tem certeza de que deseja excluir o projeto “'+p.name+'”? Esta ação removerá o registro da base compartilhada e não pode ser desfeita.'))return;try{if(cloud&&cloudReady){const {error}=await cloud.from('vosco_projects').delete().eq('id',String(id));if(error)throw error;}projects=projects.filter(x=>String(x.id)!==String(id));localStorage.setItem(STORAGE_KEY,JSON.stringify(projects));render();if($('manageModal').classList.contains('open'))manage();toast(cloud&&cloudReady?'Projeto excluído da base compartilhada.':'Projeto excluído deste navegador.');}catch(err){console.error('Falha ao excluir projeto:',err);toast('Não foi possível excluir o projeto da base compartilhada. Nenhuma alteração local foi aplicada.');}};
 function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
 function exportData(){let blob=new Blob([JSON.stringify({app:'VOSCO Inteligência Geográfica',version:2,exportedAt:new Date().toISOString(),projects},null,2)],{type:'application/json;charset=utf-8'});downloadBlob(blob,'vosco-projetos-backup.json');toast('Backup JSON exportado. Guarde-o em uma pasta segura.')}
@@ -3055,7 +3063,15 @@ function parseCSV(text){let rows=[],row=[],cell='',quoted=false;for(let i=0;i<te
 function normalizeStatus(s){let t=(s||'').toLowerCase();if(t.includes('final')||t.includes('conclu')||t.includes('completed'))return 'Finalizado';if(t.includes('andamento')||t.includes('execu')||t.includes('in progress'))return 'Em andamento';if(t.includes('paus'))return 'Pausado';if(t.includes('contrat')||t.includes('ganho')||t.includes('closed won')||t==='won')return 'Contratado / aguardando início';return 'Planejado'}
 function normalizeDate(s){if(!s)return '';if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;let m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''}
 $('addBtn').onclick=()=>openForm();$('closeModal').onclick=closeForm;$('cancelModal').onclick=closeForm;
-$('manageBtn').onclick=manage;$('closeManage').onclick=$('closeManage2').onclick=()=>$('manageModal').classList.remove('open');
+$('manageBtn').onclick=manage;$('closeManage').onclick=$('closeManage2').onclick=()=>{
+  $('manageModal').classList.remove('open');
+
+  const voscoHome = document.getElementById('voscoHome');
+  const mainApp = document.getElementById('mainApp');
+
+  if (voscoHome) voscoHome.classList.add('is-visible');
+  if (mainApp) mainApp.classList.add('vosco-home-active');
+};
 $('signOutBtn').onclick=async()=>{if(cloud)await cloud.auth.signOut();};
   function resetPageScroll() {
   window.scrollTo(0, 0);
