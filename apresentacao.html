@@ -82,7 +82,7 @@
 
   <div id="presentation">
     <iframe
-      src="https://drive.google.com/file/d/1i5aDCQexnkIjtKk3J3wiX-_JgxQo-oHf/preview"
+      src="https://docs.google.com/presentation/d/1i5aDCQexnkIjtKk3J3wiX-_JgxQo-oHf/embed?start=false&loop=false&delayms=3000"
       allow="fullscreen"
       allowfullscreen>
     </iframe>
@@ -121,10 +121,19 @@
     });
 
     document.addEventListener("fullscreenchange", () => {
-      if (!document.fullscreenElement) {
-        window.close();
-      }
-    });
+  if (!document.fullscreenElement) {
+
+    // Retorna à aba da apresentação para o cliente
+    if (window.opener && !window.opener.closed) {
+      window.opener.focus();
+      window.close();
+    } else {
+      // Alternativa caso a página seja aberta diretamente
+      startScreen.style.display = "flex";
+    }
+
+  }
+});
   </script>
 
 </body>
