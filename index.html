@@ -1873,9 +1873,20 @@ body:has(#voscoHome.is-visible) .leaflet-control-container {
       <h3>Apresentação de presença regional</h3>
       <p>Projetos realizados e presença territorial da VOSCO.</p>
     </div>
-    <button class="btn" id="exitClientPresentationBtn" type="button">
-      ← Voltar ao painel
-    </button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <button
+    class="btn"
+    id="openInstitutionalPresentationBtn"
+    type="button"
+    style="opacity:.75;font-size:12px"
+  >
+    Apresentação institucional ↗
+  </button>
+
+  <button class="btn" id="exitClientPresentationBtn" type="button">
+    ← Voltar ao painel
+  </button>
+</div>
   </div>
 
   <div class="metrics">
@@ -3535,6 +3546,10 @@ function hideCulturaVosco() {
 $('culturaVoscoBtn').onclick = showCulturaVosco;
 $('exitCulturaVoscoBtn').onclick = hideCulturaVosco;
 $('exitClientPresentationBtn').onclick = hideClientPresentation;
+// Abrir apresentação institucional da VOSCO
+$('openInstitutionalPresentationBtn').onclick = () => {
+  window.open('./apresetacao.html', '_blank');
+};
 $('exportBtn').onclick=exportData;$('exportCsvBtn').onclick=exportCSV;$('refreshBoundariesBtn').onclick=()=>loadMunicipalBoundaries(true);$('importBtn').onclick=()=>$('fileInput').click();
 let pendingImport=[];
 function importKey(p){return (String(p.name||'').trim()+'|'+String(p.city||'').trim()).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR')}
