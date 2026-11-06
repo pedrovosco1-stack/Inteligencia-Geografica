@@ -123,12 +123,9 @@
     document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement) {
 
-    // Retorna à aba da apresentação para o cliente
     if (window.opener && !window.opener.closed) {
-      window.opener.focus();
       window.close();
     } else {
-      // Alternativa caso a página seja aberta diretamente
       startScreen.style.display = "flex";
     }
 
