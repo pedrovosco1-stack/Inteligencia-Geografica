@@ -1107,7 +1107,10 @@ body:has(#voscoHome.is-visible) .leaflet-control-container {
 #voscoHome.is-visible {
   display: flex;
 }
-
+html:has(#voscoHome.is-visible),
+body:has(#voscoHome.is-visible) {
+  overflow: hidden;
+}
 .vosco-home-header {
   width: 100%;
   min-height: 90px;
