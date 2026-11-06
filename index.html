@@ -893,7 +893,7 @@ body.client-presentation-mode #clientProjectList {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  overflow-y: hidden;
+  overflow-y: auto;
   background: #101112;
   color: #eeeae2;
   font-family: inherit;
@@ -3928,6 +3928,8 @@ meetingModeBtn.addEventListener('click', async () => {
 
   // Abre o Modo Reunião
   meetingModeView.style.display = 'block';
+  document.documentElement.style.overflow = 'hidden';
+document.body.style.overflow = 'hidden';
 
   const demandsList = document.getElementById('meetingDemandsList');
   const membersList = document.getElementById('meetingMembersList');
@@ -3953,6 +3955,8 @@ meetingModeBtn.addEventListener('click', async () => {
 // Voltar à Central de Gestão
 closeMeetingModeBtn.addEventListener('click', () => {
   meetingModeView.style.display = 'none';
+  document.documentElement.style.overflow = '';
+document.body.style.overflow = '';
 
   const voscoHome = document.getElementById('voscoHome');
   const mainApp = document.getElementById('mainApp');
