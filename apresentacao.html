@@ -124,7 +124,7 @@
   if (!document.fullscreenElement) {
 
     if (window.opener && !window.opener.closed) {
-      window.close();
+      startScreen.style.display = "flex";
     } else {
       startScreen.style.display = "flex";
     }
