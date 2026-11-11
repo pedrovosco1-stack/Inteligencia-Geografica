@@ -1550,22 +1550,24 @@ body:has(#voscoHome.is-visible) {
 </section>
   
 <!-- PAINEL BIBLIOTECA VOSCO -->
-<section id="bibliotecaVoscoPanel" style="
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:1100;
-  flex-direction:column;
-  background:#111;
-  color:#f4f1eb;
-  overflow-y:auto;
-  overscroll-behavior:contain;
-  font-family:inherit;
-  box-sizing:border-box;
-">
+
+<main style="
+    width:100%;
+    max-width:1120px;
+    flex:1 0 auto;
+    margin:0 auto;
+    padding:55px 32px 70px;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:visible;
+    min-height:0;
+  ">
 
   <!-- CABEÇALHO -->
-  <header class="vosco-home-header" style="
+  <header style="
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -1756,35 +1758,57 @@ body:has(#voscoHome.is-visible) {
 </section>
 <!-- FIM DO PAINEL BIBLIOTECA VOSCO -->
 
+
 <script>
 
-document.getElementById('voltarBibliotecaBtn').addEventListener('click', function() {
-  const biblioteca = document.getElementById('bibliotecaVoscoPanel');
-  const home = document.getElementById('voscoHome');
+// VOLTAR À CENTRAL
+const voltarBibliotecaBtn = document.getElementById('voltarBibliotecaBtn');
 
-  if (biblioteca) biblioteca.style.display = 'none';
-  if (home) home.classList.add('is-visible');
+if (voltarBibliotecaBtn) {
+  voltarBibliotecaBtn.addEventListener('click', function(event) {
+    event.preventDefault();
 
-  document.body.style.overflow = '';
-  document.documentElement.style.overflow = '';
-});
+    const biblioteca = document.getElementById('bibliotecaVoscoPanel');
+    const home = document.getElementById('voscoHome');
 
-// Abrir o Manual de Uso
-document.getElementById('abrirManualVoscoBtn').addEventListener('click', async function() {
-  const viewer = document.getElementById('manualVoscoViewer');
+    if (biblioteca) {
+      biblioteca.style.display = 'none';
+    }
 
-  if (!viewer) return;
+    if (home) {
+      home.style.overflow = '';
+      home.classList.add('is-visible');
+    }
 
-  viewer.style.display = 'block';
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  });
+}
 
-  try {
-    await viewer.requestFullscreen();
-  } catch (error) {
-    console.warn('Não foi possível ativar a tela inteira:', error);
-  }
-});
 
-// Ao sair da tela inteira com ESC, retornar à Biblioteca
+// ABRIR O MANUAL DE USO
+const abrirManualVoscoBtn = document.getElementById('abrirManualVoscoBtn');
+
+if (abrirManualVoscoBtn) {
+  abrirManualVoscoBtn.addEventListener('click', async function(event) {
+    event.preventDefault();
+
+    const viewer = document.getElementById('manualVoscoViewer');
+
+    if (!viewer) return;
+
+    viewer.style.display = 'block';
+
+    try {
+      await viewer.requestFullscreen();
+    } catch (error) {
+      console.warn('Não foi possível ativar a tela inteira:', error);
+    }
+  });
+}
+
+
+// AO SAIR DA TELA INTEIRA COM ESC, RETORNAR À BIBLIOTECA
 document.addEventListener('fullscreenchange', function() {
   const viewer = document.getElementById('manualVoscoViewer');
   const biblioteca = document.getElementById('bibliotecaVoscoPanel');
@@ -1794,17 +1818,19 @@ document.addEventListener('fullscreenchange', function() {
     viewer.style.display !== 'none' &&
     document.fullscreenElement !== viewer
   ) {
-   
-viewer.style.display = 'none';
+    viewer.style.display = 'none';
 
-if (biblioteca) {
-  biblioteca.style.display = 'flex';
+    if (biblioteca) {
+      biblioteca.style.display = 'flex';
 
-  document.body.style.overflow = 'hidden';
-  document.documentElement.style.overflow = 'hidden';
-}
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    }
+  }
+});
 
 </script>
+
   
 <!-- VISUALIZADOR DO MANUAL VOSCO -->
 <section id="manualVoscoViewer" style="display:none; position:fixed; inset:0; z-index:1200; background:#111;">
