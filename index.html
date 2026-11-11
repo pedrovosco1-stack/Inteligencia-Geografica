@@ -1518,7 +1518,7 @@ body:has(#voscoHome.is-visible) {
 <!-- PAINEL BIBLIOTECA VOSCO -->
 <section id="bibliotecaVoscoPanel" style="display:none; position:fixed; inset:0; z-index:1100; background:#111; color:#f4f1eb; overflow-y:auto; font-family:inherit;">
 
-  <header class="vosco-home-header">
+  <header class="vosco-home-header" style="min-height:90px;">
     <div class="vosco-home-brand">
       <img src="./icons/vosco-512.png" alt="VOSCO">
       <div>
@@ -1527,29 +1527,47 @@ body:has(#voscoHome.is-visible) {
       </div>
     </div>
 
-    <button id="voltarBibliotecaBtn" class="btn" type="button">
+    <button id="voltarBibliotecaBtn" type="button"
+      style="padding:10px 0; color:#b8a078; background:transparent; border:0; font-size:12px; letter-spacing:.5px; cursor:pointer;">
       ← Voltar à Central
     </button>
   </header>
 
-  <main class="vosco-home-content">
-    <div class="vosco-home-intro">
-      <span>CONTEÚDO EXCLUSIVO</span>
-      <h2>Biblioteca Vosco.</h2>
-      <p>Materiais e orientações para nossos clientes.</p>
+  <main class="vosco-home-content" style="padding-top:65px;">
+
+    <div class="vosco-home-intro" style="margin-bottom:45px;">
+      <span>CONHECIMENTO E CUIDADO</span>
+      <h2>Biblioteca VOSCO.</h2>
+      <p>Um espaço dedicado às orientações e aos cuidados com seu projeto.</p>
     </div>
 
-    <div class="vosco-home-grid">
-      <button id="abrirManualVoscoBtn" class="vosco-home-card featured" type="button">
-        <span class="home-card-icon">▤</span>
-        <strong>MANUAL DE USO</strong>
-        <small>Cuidados e orientações para seus projetos VOSCO</small>
+    <div style="max-width:620px;">
+      <button id="abrirManualVoscoBtn" type="button"
+        style="width:100%; min-height:220px; padding:30px; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; gap:20px; text-align:left; color:#f4f1eb; background:linear-gradient(135deg,#29251f,#1b1b1b); border:1px solid rgba(184,160,120,.48); border-radius:5px; cursor:pointer; transition:.25s ease;">
+
+        <span style="color:#b8a078; font-size:32px;">▤</span>
+
+        <span>
+          <strong style="display:block; font-size:17px; font-weight:500; letter-spacing:1px; margin-bottom:12px;">
+            MANUAL DE USO
+          </strong>
+          <small style="display:block; color:#aaa49a; font-size:12px; line-height:1.7; font-weight:400;">
+            Orientações e cuidados para preservar a excelência do seu projeto VOSCO.
+          </small>
+        </span>
+
+        <span style="color:#b8a078; font-size:10px; letter-spacing:1.5px;">
+          ABRIR PUBLICAÇÃO →
+        </span>
+
       </button>
     </div>
+
   </main>
 
 </section>
 <!-- FIM DO PAINEL BIBLIOTECA VOSCO -->
+
 <script>
 document.getElementById('voltarBibliotecaBtn').addEventListener('click', function() {
   const biblioteca = document.getElementById('bibliotecaVoscoPanel');
