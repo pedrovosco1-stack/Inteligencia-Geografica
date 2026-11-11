@@ -1559,6 +1559,7 @@ body:has(#voscoHome.is-visible) {
   background:#111;
   color:#f4f1eb;
   overflow-y:auto;
+  overscroll-behavior:contain;
   font-family:inherit;
   box-sizing:border-box;
 ">
@@ -1755,12 +1756,16 @@ body:has(#voscoHome.is-visible) {
 <!-- FIM DO PAINEL BIBLIOTECA VOSCO -->
 
 <script>
+
 document.getElementById('voltarBibliotecaBtn').addEventListener('click', function() {
   const biblioteca = document.getElementById('bibliotecaVoscoPanel');
   const home = document.getElementById('voscoHome');
 
   if (biblioteca) biblioteca.style.display = 'none';
   if (home) home.classList.add('is-visible');
+
+  document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
 });
 
 // Abrir o Manual de Uso
@@ -1788,13 +1793,16 @@ document.addEventListener('fullscreenchange', function() {
     viewer.style.display !== 'none' &&
     document.fullscreenElement !== viewer
   ) {
-    viewer.style.display = 'none';
+   
+viewer.style.display = 'none';
 
-    if (biblioteca) {
-      biblioteca.style.display = 'flex';
-    }
-  }
-});
+if (biblioteca) {
+  biblioteca.style.display = 'flex';
+
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+}
+
 </script>
   
 <!-- VISUALIZADOR DO MANUAL VOSCO -->
