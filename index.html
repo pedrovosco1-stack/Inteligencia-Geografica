@@ -4749,7 +4749,16 @@ meetingTeamTab.addEventListener('click', () => {
   meetingTeamTab.classList.add('active');
   meetingDemandsTab.classList.remove('active');
 });
+// Ponte segura entre a sessão principal e os módulos da VOSCO
+Object.defineProperty(window, 'cloud', {
+  configurable: true,
+  get: () => cloud
+});
 
+Object.defineProperty(window, 'cloudUser', {
+  configurable: true,
+  get: () => cloudUser
+});
 initializeProjects();
 })();
 
