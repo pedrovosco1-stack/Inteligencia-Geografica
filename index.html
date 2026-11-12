@@ -7152,6 +7152,15 @@ async function renderInventory(preferredId = null) {
         Concluir inventário e aplicar ajustes
       </button>
     ` : '';
+  const cancelButton =
+    canComplete && isCounting ? `
+      <button class="gm-action"
+        type="button"
+        id="gmInventoryCancel"
+        style="margin-top:10px">
+        Cancelar inventário
+      </button>
+    ` : '';
 
   const inventoryDetails = selectedInventory ? `
     <div class="gm-placeholder" style="margin-bottom:20px">
@@ -7168,6 +7177,7 @@ async function renderInventory(preferredId = null) {
         ? `<p>Observações: ${esc(selectedInventory.notes)}</p>`
         : ''}
       ${completedButton}
+      ${cancelButton}
     </div>
   ` : `
     <div class="gm-description">
@@ -7351,6 +7361,51 @@ async function renderInventory(preferredId = null) {
       }
 
       notify('Inventário concluído e saldos atualizados.');
+      await loadOperationalData();
+      await renderInventory(selectedInventory.id);
+    });
+  }
+    const cancelButton =
+    panel.querySelector('#gmInventoryCancel');
+
+  if (cancelButton) {
+    cancelButton.addEventListener('click', async () => {
+      const reason = prompt(
+        'Informe o motivo do cancelamento deste inventário:'
+      );
+
+      if (reason === null) return;
+
+      if (!reason.trim()) {
+        notify('O motivo do cancelamento é obrigatório.', true);
+        return;
+      }
+
+      if (!confirm(
+        'Confirma o cancelamento deste inventário? As contagens serão preservadas, sem alterar os saldos físicos.'
+      )) {
+        return;
+      }
+
+      cancelButton.disabled = true;
+      cancelButton.textContent = 'Cancelando...';
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_cancel_inventory',
+        {
+          p_inventory_id: selectedInventory.id,
+          p_reason: reason.trim()
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        cancelButton.disabled = false;
+        cancelButton.textContent = 'Cancelar inventário';
+        return;
+      }
+
+      notify('Inventário cancelado com sucesso.');
       await loadOperationalData();
       await renderInventory(selectedInventory.id);
     });
