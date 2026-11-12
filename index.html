@@ -1500,6 +1500,12 @@ body:has(#voscoHome.is-visible) {
         <strong>Biblioteca Vosco</strong>
         <small>Manuais, conteúdos e materiais de referência</small>
       </button>
+
+      <button class="vosco-home-card" data-target="gestaoMateriais">
+        <span class="home-card-icon">▦</span>
+        <strong>Gestão de Materiais</strong>
+        <small>Estoque, fornecedores, movimentações e inventário</small>
+      </button>
       
     </div>
 
@@ -4806,6 +4812,362 @@ else if (targetId !== 'signOutBtn') {
   originalButton.click();
 });
 </script>
+
+<style>
+/* ==========================================
+   GESTÃO DE MATERIAIS — VOSCO
+========================================== */
+#gestaoMateriaisPanel {
+  --gm-bg: #111315;
+  --gm-panel: #191c20;
+  --gm-panel2: #202429;
+  --gm-line: #30353b;
+  --gm-text: #f2f0eb;
+  --gm-muted: #a8adb3;
+  --gm-gold: #b8a078;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: none;
+  flex-direction: column;
+  overflow: auto;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+}
+
+#gestaoMateriaisPanel * {
+  box-sizing: border-box;
+}
+
+#gestaoMateriaisPanel .gm-header {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 28px 36px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--gm-line);
+}
+
+#gestaoMateriaisPanel .gm-brand small {
+  display: block;
+  color: var(--gm-gold);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  margin-bottom: 8px;
+}
+
+#gestaoMateriaisPanel .gm-brand h1 {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+#gestaoMateriaisPanel .gm-brand p {
+  margin: 7px 0 0;
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+#gestaoMateriaisPanel .gm-back {
+  border: 1px solid var(--gm-line);
+  color: var(--gm-text);
+  background: transparent;
+  padding: 11px 17px;
+  border-radius: 5px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+#gestaoMateriaisPanel .gm-back:hover {
+  border-color: var(--gm-gold);
+  color: var(--gm-gold);
+}
+
+#gestaoMateriaisPanel .gm-content {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 28px 36px 50px;
+}
+
+#gestaoMateriaisPanel .gm-tabs {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--gm-line);
+}
+
+#gestaoMateriaisPanel .gm-tab {
+  flex: 0 0 auto;
+  padding: 12px 15px;
+  color: var(--gm-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+#gestaoMateriaisPanel .gm-tab:hover,
+#gestaoMateriaisPanel .gm-tab.active {
+  color: var(--gm-gold);
+  border-color: var(--gm-line);
+  background: var(--gm-panel);
+}
+
+#gestaoMateriaisPanel .gm-section {
+  display: none;
+  padding-top: 27px;
+}
+
+#gestaoMateriaisPanel .gm-section.active {
+  display: block;
+}
+
+#gestaoMateriaisPanel .gm-section h2 {
+  margin: 0 0 8px;
+  font-size: 21px;
+  font-weight: 500;
+}
+
+#gestaoMateriaisPanel .gm-description {
+  margin: 0 0 25px;
+  color: var(--gm-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#gestaoMateriaisPanel .gm-placeholder {
+  padding: 28px;
+  background: var(--gm-panel);
+  border: 1px solid var(--gm-line);
+  border-radius: 6px;
+  color: var(--gm-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+#gestaoMateriaisPanel .gm-placeholder strong {
+  display: block;
+  color: var(--gm-gold);
+  font-weight: 500;
+  margin-bottom: 7px;
+}
+
+#gestaoMateriaisPanel .gm-footer {
+  max-width: 1440px;
+  width: 100%;
+  margin: auto auto 0;
+  padding: 20px 36px;
+  color: var(--gm-muted);
+  border-top: 1px solid var(--gm-line);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+
+@media(max-width:700px) {
+  #gestaoMateriaisPanel .gm-header {
+    padding: 22px 18px;
+    align-items: flex-start;
+  }
+
+  #gestaoMateriaisPanel .gm-content {
+    padding: 22px 18px 35px;
+  }
+
+  #gestaoMateriaisPanel .gm-footer {
+    padding: 18px;
+  }
+
+  #gestaoMateriaisPanel .gm-brand h1 {
+    font-size: 20px;
+  }
+}
+</style>
+
+<section id="gestaoMateriaisPanel">
+
+  <header class="gm-header">
+    <div class="gm-brand">
+      <small>VOSCO · CENTRAL DE GESTÃO</small>
+      <h1>Gestão de Materiais</h1>
+      <p>Controle integrado de estoque, fornecedores e movimentações.</p>
+    </div>
+
+    <button type="button" class="gm-back" id="gmVoltarCentral">
+      ← Voltar à Central
+    </button>
+  </header>
+
+  <main class="gm-content">
+
+    <nav class="gm-tabs" aria-label="Áreas da Gestão de Materiais">
+      <button class="gm-tab active" data-gm-tab="visao">Visão Geral</button>
+      <button class="gm-tab" data-gm-tab="materiais">Materiais</button>
+      <button class="gm-tab" data-gm-tab="fornecedores">Fornecedores</button>
+      <button class="gm-tab" data-gm-tab="movimentacoes">Movimentações</button>
+      <button class="gm-tab" data-gm-tab="transferencias">Transferências</button>
+      <button class="gm-tab" data-gm-tab="reservas">Reservas</button>
+      <button class="gm-tab" data-gm-tab="inventario">Inventário Físico</button>
+      <button class="gm-tab" data-gm-tab="relatorio">Relatório Excel</button>
+    </nav>
+
+    <section class="gm-section active" data-gm-section="visao">
+      <h2>Visão Geral</h2>
+      <p class="gm-description">
+        Acompanhamento consolidado dos materiais e da posição de estoque.
+      </p>
+      <div class="gm-placeholder">
+        <strong>Painel de indicadores</strong>
+        Os indicadores de estoque, disponibilidade, valor e necessidade de reposição serão conectados ao Supabase na próxima etapa.
+      </div>
+    </section>
+
+    <section class="gm-section" data-gm-section="materiais">
+      <h2>Materiais</h2>
+      <p class="gm-description">
+        Cadastro e consulta do catálogo único de materiais da VOSCO.
+      </p>
+      <div class="gm-placeholder">
+        <strong>Catálogo de materiais</strong>
+        Aqui ficarão o cadastro, a edição, os saldos por local e os níveis mínimos de estoque.
+      </div>
+    </section>
+
+    <section class="gm-section" data-gm-section="fornecedores">
+      <h2>Fornecedores</h2>
+      <p class="gm-description">
+        Gestão dos fornecedores vinculados aos materiais.
+      </p>
+      <div class="gm-placeholder">
+        <strong>Base de fornecedores</strong>
+        Cadastro de fornecedores, contatos, fornecedores principais e alternativas.
+      </div>
+    </section>
+
+    <section class="gm-section" data-gm-section="movimentacoes">
+      <h2>Movimentações</h2>
+      <p class="gm-description">
+        Registro e consulta do histórico de entradas e saídas.
+      </p>
+      <div class="gm-placeholder">
+        <strong>Histórico de estoque</strong>
+        Entradas, saídas, ajustes, responsáveis e custos das movimentações.
+      </div>
+    </section>
+
+    <section class="gm-section" data-gm-section="transferencias">
+      <h2>Transferências</h2>
+      <p class="gm-description">
+        Controle de movimentações entre São Paulo e Indaiatuba.
+      </p>
+      <div class="gm-placeholder">
+        <strong>Transferências entre locais</strong>
+        Solicitação, despacho e confirmação de recebimento.
+      </div>
+    </section>
+
+    <section class="gm-section" data-gm-section="reservas">
+      <h2>Reservas</h2>
+      <p class="gm-description">
+        Controle de materiais comprometidos com projetos e demandas internas.
+      </p>
+      <div class="gm-placeholder">
+        <strong>Materiais reservados</strong>
+        Acompanhamento de quantidades, responsáveis, datas previstas e pendências.
+      </div>
+    </section>
+
+    <section class="gm-section" data-gm-section="inventario">
+      <h2>Inventário Físico</h2>
+      <p class="gm-description">
+        Conferência física e conciliação dos saldos registrados.
+      </p>
+      <div class="gm-placeholder">
+        <strong>Conferência de estoque</strong>
+        Inventários gerais ou individuais, contagens e ajustes controlados.
+      </div>
+    </section>
+
+    <section class="gm-section" data-gm-section="relatorio">
+      <h2>Relatório Excel</h2>
+      <p class="gm-description">
+        Exportação consolidada dos materiais e seus respectivos indicadores.
+      </p>
+      <div class="gm-placeholder">
+        <strong>Relatório consolidado</strong>
+        Planilha com saldos por local, custos médios, valores estimados e histórico recente.
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="gm-footer">
+    VOSCO · GESTÃO DE MATERIAIS · EXCELÊNCIA EM CADA DETALHE
+  </footer>
+
+</section>
+
+<script>
+(function () {
+  const panel = document.getElementById('gestaoMateriaisPanel');
+  if (!panel) return;
+
+  // Navegação entre as oito áreas
+  panel.querySelectorAll('[data-gm-tab]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      const target = tab.getAttribute('data-gm-tab');
+
+      panel.querySelectorAll('[data-gm-tab]').forEach(function (item) {
+        item.classList.toggle('active', item === tab);
+      });
+
+      panel.querySelectorAll('[data-gm-section]').forEach(function (section) {
+        section.classList.toggle(
+          'active',
+          section.getAttribute('data-gm-section') === target
+        );
+      });
+    });
+  });
+
+  // Retorno à Central VOSCO sem encerrar a sessão
+  document.getElementById('gmVoltarCentral').addEventListener('click', function () {
+    panel.style.display = 'none';
+
+    const home = document.getElementById('voscoHome');
+    if (home) home.classList.add('is-visible');
+  });
+
+  // Abertura do módulo pela Central VOSCO
+  document.addEventListener('click', function (event) {
+    const card = event.target.closest(
+      '#voscoHome [data-target="gestaoMateriais"]'
+    );
+
+    if (!card) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const home = document.getElementById('voscoHome');
+    if (home) home.classList.remove('is-visible');
+
+    panel.style.display = 'flex';
+  }, true);
+})();
+</script>
+
 </body>
 </html>
 <!-- Atualizacao de publicacao VOSCO -->
