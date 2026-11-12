@@ -6521,10 +6521,78 @@ function renderTransfers() {
         return;
       }
 
-      notify('Transferência solicitada com sucesso.');
+            notify('Transferência solicitada com sucesso.');
       await loadOperationalData();
     });
   }
+
+  panel.querySelectorAll('[data-gm-dispatch]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const id = button.dataset.gmDispatch;
+
+      if (!confirm('Confirma o despacho desta transferência?')) return;
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_dispatch_transfer',
+        { p_transfer_id: id }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Transferência despachada com sucesso.');
+      await loadOperationalData();
+    });
+  });
+
+  panel.querySelectorAll('[data-gm-receive]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const id = button.dataset.gmReceive;
+
+      if (!confirm('Confirma o recebimento desta transferência?')) return;
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_receive_transfer',
+        { p_transfer_id: id }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Recebimento confirmado com sucesso.');
+      await loadOperationalData();
+    });
+  });
+
+  panel.querySelectorAll('[data-gm-cancel]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const id = button.dataset.gmCancel;
+      const reason = prompt('Informe o motivo do cancelamento:');
+
+      if (reason === null) return;
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_cancel_transfer',
+        {
+          p_transfer_id: id,
+          p_reason: reason || null
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Transferência cancelada.');
+      await loadOperationalData();
+    });
+  });
+}
 
 async function renderReservations() {
   const activeProducts = gm.products.filter(
@@ -6859,74 +6927,6 @@ async function renderReservations() {
       }
 
       notify('Reserva cancelada com sucesso.');
-      await loadOperationalData();
-    });
-  });
-}
-
-  panel.querySelectorAll('[data-gm-dispatch]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const id = button.dataset.gmDispatch;
-
-      if (!confirm('Confirma o despacho desta transferência?')) return;
-
-      const { error } = await cloud.rpc(
-        'vosco_gm_dispatch_transfer',
-        { p_transfer_id: id }
-      );
-
-      if (error) {
-        notify(error.message, true);
-        return;
-      }
-
-      notify('Transferência despachada com sucesso.');
-      await loadOperationalData();
-    });
-  });
-
-  panel.querySelectorAll('[data-gm-receive]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const id = button.dataset.gmReceive;
-
-      if (!confirm('Confirma o recebimento desta transferência?')) return;
-
-      const { error } = await cloud.rpc(
-        'vosco_gm_receive_transfer',
-        { p_transfer_id: id }
-      );
-
-      if (error) {
-        notify(error.message, true);
-        return;
-      }
-
-      notify('Recebimento confirmado com sucesso.');
-      await loadOperationalData();
-    });
-  });
-
-  panel.querySelectorAll('[data-gm-cancel]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const id = button.dataset.gmCancel;
-      const reason = prompt('Informe o motivo do cancelamento:');
-
-      if (reason === null) return;
-
-      const { error } = await cloud.rpc(
-        'vosco_gm_cancel_transfer',
-        {
-          p_transfer_id: id,
-          p_reason: reason || null
-        }
-      );
-
-      if (error) {
-        notify(error.message, true);
-        return;
-      }
-
-      notify('Transferência cancelada.');
       await loadOperationalData();
     });
   });
