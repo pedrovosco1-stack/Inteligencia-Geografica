@@ -5074,16 +5074,66 @@ else if (targetId !== 'signOutBtn') {
       </div>
     </section>
 
-    <section class="gm-section" data-gm-section="transferencias">
-      <h2>Transferências</h2>
-      <p class="gm-description">
-        Controle de movimentações entre São Paulo e Indaiatuba.
-      </p>
-      <div class="gm-placeholder">
-        <strong>Transferências entre locais</strong>
-        Solicitação, despacho e confirmação de recebimento.
+    
+<section class="gm-section" data-gm-section="transferencias">
+  <h2>Transferências</h2>
+  <p class="gm-description">
+    Controle de movimentações de materiais entre São Paulo e Indaiatuba.
+  </p>
+
+  <div class="gm-dynamic-content">
+    <div class="gm-form">
+      <h3>Nova transferência</h3>
+
+      <div class="gm-form-grid">
+        <label>
+          Material
+          <select id="gm-transfer-product">
+            <option value="">Selecione o material</option>
+          </select>
+        </label>
+
+        <label>
+          Quantidade
+          <input id="gm-transfer-quantity" type="number" min="0.01" step="0.01" placeholder="Informe a quantidade">
+        </label>
+
+        <label>
+          Local de origem
+          <select id="gm-transfer-origin">
+            <option value="">Selecione a origem</option>
+          </select>
+        </label>
+
+        <label>
+          Local de destino
+          <select id="gm-transfer-destination">
+            <option value="">Selecione o destino</option>
+          </select>
+        </label>
       </div>
-    </section>
+
+      <label>
+        Observações
+        <textarea id="gm-transfer-notes" placeholder="Informações adicionais (opcional)"></textarea>
+      </label>
+
+      <button type="button" id="gm-transfer-request">
+        Solicitar transferência
+      </button>
+    </div>
+
+    <div class="gm-card">
+      <h3>Histórico de transferências</h3>
+      <div id="gm-transfer-list">
+        <p class="gm-description">
+          Nenhuma transferência registrada até o momento.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
 
     <section class="gm-section" data-gm-section="reservas">
       <h2>Reservas</h2>
