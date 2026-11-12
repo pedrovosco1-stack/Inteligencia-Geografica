@@ -5168,6 +5168,657 @@ else if (targetId !== 'signOutBtn') {
 })();
 </script>
 
+<script>
+(function () {
+  const panel = document.getElementById('gestaoMateriaisPanel');
+  if (!panel || typeof cloud === 'undefined') return;
+
+  const gm = {
+    products: [],
+    suppliers: [],
+    categories: [],
+    links: [],
+    role: null,
+    ready: false
+  };
+
+  const canManage = () => ['admin', 'manager'].includes(gm.role);
+
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[c]);
+
+  function notify(message, error = false) {
+    let box = panel.querySelector('#gmOperationMessage');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'gmOperationMessage';
+      box.className = 'gm-status';
+      panel.querySelector('.gm-content')?.prepend(box);
+    }
+    box.style.color = error ? '#e2a09a' : '#b8a078';
+    box.textContent = message;
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function setContent(key, html) {
+    const section = panel.querySelector(
+      '[data-gm-section="' + key + '"]'
+    );
+    if (!section) return;
+
+    let content = section.querySelector('.gm-dynamic-content');
+    if (!content) {
+      content = document.createElement('div');
+      content.className = 'gm-dynamic-content';
+      section.appendChild(content);
+    }
+    content.innerHTML = html;
+  }
+
+  async function loadOperationalData() {
+    if (!cloudUser?.id) {
+      notify('Não foi possível identificar o usuário autenticado.', true);
+      return;
+    }
+
+    const [profile, products, suppliers, categories, links] =
+      await Promise.all([
+        cloud.from('vosco_gm_members')
+          .select('role,active')
+          .eq('user_id', cloudUser.id)
+          .maybeSingle(),
+
+        cloud.from('vosco_gm_products')
+          .select('*')
+          .order('name'),
+
+        cloud.from('vosco_gm_suppliers')
+          .select('*')
+          .order('name'),
+
+        cloud.from('vosco_gm_categories')
+          .select('*')
+          .eq('active', true)
+          .order('name'),
+
+        cloud.from('vosco_gm_product_suppliers')
+          .select('*')
+      ]);
+
+    for (const result of [profile, products, suppliers, categories, links]) {
+      if (result.error) throw result.error;
+    }
+
+    if (!profile.data?.active) {
+      throw new Error('Usuário sem perfil ativo na Gestão de Materiais.');
+    }
+
+    gm.role = profile.data.role;
+    gm.products = products.data || [];
+    gm.suppliers = suppliers.data || [];
+    gm.categories = categories.data || [];
+    gm.links = links.data || [];
+    gm.ready = true;
+
+    renderMaterials();
+    renderSuppliers();
+  }
+
+  function categoryOptions(selected = '') {
+    return '<option value="">Sem categoria</option>' +
+      gm.categories.map(c =>
+        `<option value="${c.id}" ${c.id === selected ? 'selected' : ''}>
+          ${esc(c.name)}
+        </option>`
+      ).join('');
+  }
+
+  function renderMaterials(editing = null) {
+    const p = editing || {};
+
+    const form = canManage() ? `
+      <div class="gm-placeholder" style="margin-bottom:22px">
+        <strong>${p.id ? 'Editar material' : 'Cadastrar novo material'}</strong>
+
+        <form id="gmProductForm">
+          <input type="hidden" name="id" value="${esc(p.id || '')}">
+
+          <div class="gm-form-grid">
+            <label>Código
+              <input name="code" value="${esc(p.code || '')}"
+                placeholder="Código interno">
+            </label>
+
+            <label>Nome do material *
+              <input name="name" required value="${esc(p.name || '')}"
+                placeholder="Nome do material">
+            </label>
+
+            <label>Marca
+              <input name="brand" value="${esc(p.brand || '')}">
+            </label>
+
+            <label>Fabricante
+              <input name="manufacturer" value="${esc(p.manufacturer || '')}">
+            </label>
+
+            <label>Unidade *
+              <input name="unit" required value="${esc(p.unit || 'un')}"
+                placeholder="un, m, m², kg...">
+            </label>
+
+            <label>Categoria
+              <select name="category_id">${categoryOptions(p.category_id)}</select>
+            </label>
+
+            <label>Estoque mínimo
+              <input name="minimum_stock" type="number" min="0" step="0.001"
+                value="${esc(p.minimum_stock ?? 0)}">
+            </label>
+
+            <label>Descrição
+              <input name="description" value="${esc(p.description || '')}">
+            </label>
+
+            ${p.id ? `
+              <label>Status
+                <select name="status">
+                  <option value="active" ${p.status === 'active' ? 'selected' : ''}>Ativo</option>
+                  <option value="inactive" ${p.status === 'inactive' ? 'selected' : ''}>Inativo</option>
+                  <option value="deleted" ${p.status === 'deleted' ? 'selected' : ''}>Excluído logicamente</option>
+                </select>
+              </label>
+            ` : ''}
+          </div>
+
+          <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap">
+            <button class="gm-action" type="submit">
+              ${p.id ? 'Salvar alterações' : 'Cadastrar material'}
+            </button>
+            ${p.id ? `
+              <button class="gm-action secondary" type="button" id="gmCancelProductEdit">
+                Cancelar edição
+              </button>
+            ` : ''}
+          </div>
+        </form>
+      </div>
+    ` : `
+      <div class="gm-status">
+        Seu perfil permite consultar materiais, mas não cadastrar ou editar.
+      </div>
+    `;
+
+    const rows = gm.products.map(item => `
+      <tr>
+        <td>${esc(item.code || '—')}</td>
+        <td>${esc(item.name)}</td>
+        <td>${esc(item.brand || '—')}</td>
+        <td>${esc(item.manufacturer || '—')}</td>
+        <td>${esc(item.unit || 'un')}</td>
+        <td>${esc(item.status || '—')}</td>
+        <td>${Number(item.minimum_stock || 0).toLocaleString('pt-BR')}</td>
+        <td>
+          ${canManage() ? `
+            <button type="button" class="gm-action secondary"
+              data-gm-edit-product="${item.id}">
+              Editar
+            </button>
+          ` : '—'}
+        </td>
+      </tr>
+    `).join('');
+
+    setContent('materiais', `
+      ${form}
+
+      <div class="gm-toolbar">
+        <strong>${gm.products.length} materiais cadastrados</strong>
+        <input class="gm-search" id="gmProductSearch"
+          placeholder="Buscar material ou código...">
+      </div>
+
+      <div class="gm-table-wrap">
+        <table class="gm-table">
+          <thead>
+            <tr>
+              <th>Código</th><th>Material</th><th>Marca</th>
+              <th>Fabricante</th><th>Unidade</th><th>Status</th>
+              <th>Mínimo</th><th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="gmProductRows">
+            ${rows || '<tr><td colspan="8">Nenhum material cadastrado.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `);
+
+    const formElement = panel.querySelector('#gmProductForm');
+
+    if (formElement) {
+      formElement.addEventListener('submit', saveProduct);
+    }
+
+    panel.querySelector('#gmCancelProductEdit')?.addEventListener('click', () => {
+      renderMaterials();
+    });
+
+    panel.querySelectorAll('[data-gm-edit-product]').forEach(button => {
+      button.addEventListener('click', () => {
+        const product = gm.products.find(
+          p => p.id === button.dataset.gmEditProduct
+        );
+        if (product) renderMaterials(product);
+      });
+    });
+
+    panel.querySelector('#gmProductSearch')?.addEventListener('input', function () {
+      const term = this.value.toLocaleLowerCase('pt-BR');
+      panel.querySelectorAll('#gmProductRows tr').forEach(row => {
+        row.style.display = row.textContent.toLocaleLowerCase('pt-BR')
+          .includes(term) ? '' : 'none';
+      });
+    });
+  }
+
+  async function saveProduct(event) {
+    event.preventDefault();
+    if (!canManage()) return notify('Sem permissão para cadastrar materiais.', true);
+
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form).entries());
+    const id = data.id;
+    const payload = {
+      code: data.code.trim() || null,
+      name: data.name.trim(),
+      brand: data.brand.trim() || null,
+      manufacturer: data.manufacturer.trim() || null,
+      unit: data.unit.trim(),
+      category_id: data.category_id || null,
+      minimum_stock: Number(data.minimum_stock || 0),
+      description: data.description.trim() || null,
+      updated_by: cloudUser.id
+    };
+
+    if (!payload.name || !payload.unit || payload.minimum_stock < 0) {
+      return notify('Confira os campos obrigatórios e o estoque mínimo.', true);
+    }
+
+    const button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Salvando...';
+
+    try {
+      let result;
+
+      if (id) {
+        payload.status = data.status;
+        result = await cloud.from('vosco_gm_products')
+          .update(payload).eq('id', id);
+      } else {
+        payload.created_by = cloudUser.id;
+        result = await cloud.from('vosco_gm_products')
+          .insert(payload);
+      }
+
+      if (result.error) throw result.error;
+
+      await loadOperationalData();
+      notify(id ? 'Material atualizado com sucesso.' : 'Material cadastrado com sucesso.');
+
+    } catch (error) {
+      notify(error.message || 'Não foi possível salvar o material.', true);
+      button.disabled = false;
+      button.textContent = id ? 'Salvar alterações' : 'Cadastrar material';
+    }
+  }
+
+  function renderSuppliers(editing = null) {
+    const s = editing || {};
+
+    const form = canManage() ? `
+      <div class="gm-placeholder" style="margin-bottom:22px">
+        <strong>${s.id ? 'Editar fornecedor' : 'Cadastrar fornecedor'}</strong>
+
+        <form id="gmSupplierForm">
+          <input type="hidden" name="id" value="${esc(s.id || '')}">
+
+          <div class="gm-form-grid">
+            <label>Razão social / Nome *
+              <input name="name" required value="${esc(s.name || '')}">
+            </label>
+
+            <label>Nome fantasia
+              <input name="trade_name" value="${esc(s.trade_name || '')}">
+            </label>
+
+            <label>CNPJ / CPF
+              <input name="document_number" value="${esc(s.document_number || '')}">
+            </label>
+
+            <label>Nome do contato
+              <input name="contact_name" value="${esc(s.contact_name || '')}">
+            </label>
+
+            <label>Telefone
+              <input name="phone" value="${esc(s.phone || '')}">
+            </label>
+
+            <label>E-mail
+              <input name="email" type="email" value="${esc(s.email || '')}">
+            </label>
+
+            <label>Observações
+              <input name="notes" value="${esc(s.notes || '')}">
+            </label>
+
+            ${s.id ? `
+              <label>Status
+                <select name="active">
+                  <option value="true" ${s.active ? 'selected' : ''}>Ativo</option>
+                  <option value="false" ${!s.active ? 'selected' : ''}>Inativo</option>
+                </select>
+              </label>
+            ` : ''}
+          </div>
+
+          <div style="display:flex;gap:9px;margin-top:16px">
+            <button class="gm-action" type="submit">
+              ${s.id ? 'Salvar alterações' : 'Cadastrar fornecedor'}
+            </button>
+            ${s.id ? `
+              <button class="gm-action secondary" type="button" id="gmCancelSupplierEdit">
+                Cancelar
+              </button>
+            ` : ''}
+          </div>
+        </form>
+      </div>
+    ` : `
+      <div class="gm-status">Seu perfil permite consultar fornecedores.</div>
+    `;
+
+    const rows = gm.suppliers.map(item => `
+      <tr>
+        <td>${esc(item.name)}</td>
+        <td>${esc(item.trade_name || '—')}</td>
+        <td>${esc(item.contact_name || '—')}</td>
+        <td>${esc(item.phone || '—')}</td>
+        <td>${esc(item.email || '—')}</td>
+        <td>${item.active ? 'Ativo' : 'Inativo'}</td>
+        <td>
+          ${canManage() ? `
+            <button type="button" class="gm-action secondary"
+              data-gm-edit-supplier="${item.id}">
+              Editar
+            </button>
+          ` : '—'}
+        </td>
+      </tr>
+    `).join('');
+
+    const productOptions = gm.products
+      .filter(p => p.status === 'active')
+      .map(p => `<option value="${p.id}">${esc(p.name)}</option>`)
+      .join('');
+
+    const supplierOptions = gm.suppliers
+      .filter(s => s.active)
+      .map(s => `<option value="${s.id}">${esc(s.name)}</option>`)
+      .join('');
+
+    const linkForm = canManage() ? `
+      <div class="gm-placeholder" style="margin:22px 0">
+        <strong>Vincular fornecedor a um material</strong>
+        <form id="gmLinkSupplierForm">
+          <div class="gm-form-grid">
+            <label>Material
+              <select name="product_id" required>
+                <option value="">Selecione</option>${productOptions}
+              </select>
+            </label>
+            <label>Fornecedor
+              <select name="supplier_id" required>
+                <option value="">Selecione</option>${supplierOptions}
+              </select>
+            </label>
+            <label>Código do produto no fornecedor
+              <input name="supplier_product_code">
+            </label>
+            <label>Observações
+              <input name="notes">
+            </label>
+            <label style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" name="is_primary">
+              Definir como fornecedor principal
+            </label>
+          </div>
+          <button class="gm-action" type="submit" style="margin-top:15px">
+            Vincular fornecedor
+          </button>
+        </form>
+      </div>
+    ` : '';
+
+    const linkedRows = gm.links.map(link => {
+      const product = gm.products.find(p => p.id === link.product_id);
+      const supplier = gm.suppliers.find(s => s.id === link.supplier_id);
+      if (!product || !supplier) return '';
+      return `<tr>
+        <td>${esc(product.name)}</td>
+        <td>${esc(supplier.name)}</td>
+        <td>${link.is_primary ? 'Principal' : 'Alternativo'}</td>
+        <td>${esc(link.supplier_product_code || '—')}</td>
+      </tr>`;
+    }).join('');
+
+    setContent('fornecedores', `
+      ${form}
+      <div class="gm-toolbar">
+        <strong>${gm.suppliers.length} fornecedores cadastrados</strong>
+        <input class="gm-search" id="gmSupplierSearch"
+          placeholder="Buscar fornecedor...">
+      </div>
+      <div class="gm-table-wrap">
+        <table class="gm-table">
+          <thead><tr>
+            <th>Fornecedor</th><th>Nome fantasia</th><th>Contato</th>
+            <th>Telefone</th><th>E-mail</th><th>Status</th><th>Ação</th>
+          </tr></thead>
+          <tbody id="gmSupplierRows">
+            ${rows || '<tr><td colspan="7">Nenhum fornecedor cadastrado.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      ${linkForm}
+
+      <h3>Fornecedores vinculados aos materiais</h3>
+      <div class="gm-table-wrap">
+        <table class="gm-table">
+          <thead><tr>
+            <th>Material</th><th>Fornecedor</th><th>Tipo</th>
+            <th>Código no fornecedor</th>
+          </tr></thead>
+          <tbody>
+            ${linkedRows || '<tr><td colspan="4">Nenhum vínculo cadastrado.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `);
+
+    panel.querySelector('#gmSupplierForm')?.addEventListener(
+      'submit', saveSupplier
+    );
+
+    panel.querySelector('#gmCancelSupplierEdit')?.addEventListener(
+      'click', () => renderSuppliers()
+    );
+
+    panel.querySelectorAll('[data-gm-edit-supplier]').forEach(button => {
+      button.addEventListener('click', () => {
+        const supplier = gm.suppliers.find(
+          s => s.id === button.dataset.gmEditSupplier
+        );
+        if (supplier) renderSuppliers(supplier);
+      });
+    });
+
+    panel.querySelector('#gmSupplierSearch')?.addEventListener('input', function () {
+      const term = this.value.toLocaleLowerCase('pt-BR');
+      panel.querySelectorAll('#gmSupplierRows tr').forEach(row => {
+        row.style.display = row.textContent.toLocaleLowerCase('pt-BR')
+          .includes(term) ? '' : 'none';
+      });
+    });
+
+    panel.querySelector('#gmLinkSupplierForm')?.addEventListener(
+      'submit', linkSupplier
+    );
+  }
+
+  async function saveSupplier(event) {
+    event.preventDefault();
+    if (!canManage()) return notify('Sem permissão para gerenciar fornecedores.', true);
+
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form).entries());
+    const id = data.id;
+
+    const payload = {
+      name: data.name.trim(),
+      trade_name: data.trade_name.trim() || null,
+      document_number: data.document_number.trim() || null,
+      contact_name: data.contact_name.trim() || null,
+      phone: data.phone.trim() || null,
+      email: data.email.trim() || null,
+      notes: data.notes.trim() || null
+    };
+
+    if (id) {
+      payload.active = data.active === 'true';
+      payload.updated_at = new Date().toISOString();
+    } else {
+      payload.created_by = cloudUser.id;
+    }
+
+    const button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Salvando...';
+
+    try {
+      const result = id
+        ? await cloud.from('vosco_gm_suppliers').update(payload).eq('id', id)
+        : await cloud.from('vosco_gm_suppliers').insert(payload);
+
+      if (result.error) throw result.error;
+
+      await loadOperationalData();
+      notify(id ? 'Fornecedor atualizado com sucesso.' : 'Fornecedor cadastrado com sucesso.');
+
+    } catch (error) {
+      notify(error.message || 'Não foi possível salvar o fornecedor.', true);
+      button.disabled = false;
+    }
+  }
+
+  async function linkSupplier(event) {
+    event.preventDefault();
+    if (!canManage()) return notify('Sem permissão para vincular fornecedores.', true);
+
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form).entries());
+    const primary = form.querySelector('[name="is_primary"]').checked;
+
+    const payload = {
+      product_id: data.product_id,
+      supplier_id: data.supplier_id,
+      supplier_product_code: data.supplier_product_code.trim() || null,
+      notes: data.notes.trim() || null,
+      is_primary: primary
+    };
+
+    try {
+      if (primary) {
+        // Libera o vínculo principal anterior antes de definir o novo.
+        const clear = await cloud.from('vosco_gm_product_suppliers')
+          .update({is_primary:false})
+          .eq('product_id', payload.product_id)
+          .eq('is_primary', true);
+
+        if (clear.error) throw clear.error;
+      }
+
+      const result = await cloud.from('vosco_gm_product_suppliers')
+        .upsert(payload, {onConflict:'product_id,supplier_id'});
+
+      if (result.error) throw result.error;
+
+      await loadOperationalData();
+      notify('Fornecedor vinculado ao material com sucesso.');
+
+    } catch (error) {
+      notify(error.message || 'Não foi possível criar o vínculo.', true);
+    }
+  }
+
+  // Mantém a inicialização de leitura anterior e acrescenta os formulários.
+  const previousInit = window.gmInit;
+
+  window.gmInit = async function () {
+    try {
+      if (typeof previousInit === 'function') {
+        await previousInit();
+      }
+
+      await loadOperationalData();
+
+    } catch (error) {
+      console.error('[VOSCO GM Cadastros]', error);
+      notify(error.message || 'Erro ao iniciar os cadastros.', true);
+    }
+  };
+
+  // Disponibiliza recarga dos cadastros para as próximas etapas.
+  window.gmReloadOperationalData = loadOperationalData;
+
+})();
+</script>
+
+<style>
+#gestaoMateriaisPanel .gm-form-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:13px;
+}
+#gestaoMateriaisPanel .gm-form-grid label {
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  color:#a8adb3;
+  font-size:11px;
+}
+#gestaoMateriaisPanel .gm-form-grid input,
+#gestaoMateriaisPanel .gm-form-grid select {
+  width:100%;
+  min-width:0;
+  background:#111315;
+  color:#f2f0eb;
+  border:1px solid #30353b;
+  border-radius:4px;
+  padding:11px;
+  font:inherit;
+  font-size:12px;
+}
+#gestaoMateriaisPanel .gm-form-grid input:focus,
+#gestaoMateriaisPanel .gm-form-grid select:focus {
+  outline:1px solid #b8a078;
+  border-color:#b8a078;
+}
+</style>
+
 </body>
 </html>
 <!-- Atualizacao de publicacao VOSCO -->
