@@ -5164,6 +5164,11 @@ else if (targetId !== 'signOutBtn') {
     if (home) home.classList.remove('is-visible');
 
     panel.style.display = 'flex';
+    if (typeof window.gmInit === 'function') {
+  window.gmInit();
+} else {
+  console.error('Gestão de Materiais: gmInit não foi carregado.');
+}
   }, true);
 })();
 </script>
