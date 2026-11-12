@@ -6109,6 +6109,7 @@ else if (targetId !== 'signOutBtn') {
   // Mantém a inicialização de leitura anterior e acrescenta os formulários.
   const previousInit = window.gmInit;
   
+
 function renderMovements() {
   const activeProducts = gm.products.filter(
     product => product.status === 'active' && product.active !== false
@@ -6122,13 +6123,12 @@ function renderMovements() {
       </option>
     `).join('');
 
-  const form = canManage() ? `
+  const forms = canManage() ? `
     <div class="gm-placeholder" style="margin-bottom:22px">
       <strong>Registrar entrada de material</strong>
 
       <form id="gmEntryForm">
         <div class="gm-form-grid">
-
           <label>Material *
             <select name="product_id" required>
               ${productOptions}
@@ -6166,12 +6166,53 @@ function renderMovements() {
             <input name="notes"
               placeholder="Informações adicionais">
           </label>
-
         </div>
 
         <div style="display:flex;gap:9px;margin-top:16px">
           <button class="gm-action" type="submit">
             Registrar entrada
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="gm-placeholder" style="margin-bottom:22px">
+      <strong>Registrar saída de material</strong>
+
+      <form id="gmExitForm">
+        <div class="gm-form-grid">
+          <label>Material *
+            <select name="product_id" required>
+              ${productOptions}
+            </select>
+          </label>
+
+          <label>Local de origem *
+            <select name="location_id" required>
+              ${locationOptions()}
+            </select>
+          </label>
+
+          <label>Quantidade *
+            <input name="quantity" type="number"
+              min="0.001" step="0.001" required>
+          </label>
+
+          <label>Motivo da saída *
+            <input name="reason"
+              placeholder="Ex.: Utilização em projeto, perda..."
+              required>
+          </label>
+
+          <label style="grid-column:1/-1">Observações
+            <input name="notes"
+              placeholder="Informações adicionais">
+          </label>
+        </div>
+
+        <div style="display:flex;gap:9px;margin-top:16px">
+          <button class="gm-action" type="submit">
+            Registrar saída
           </button>
         </div>
       </form>
@@ -6230,7 +6271,7 @@ function renderMovements() {
   }).join('');
 
   setContent('movimentacoes', `
-    ${form}
+    ${forms}
 
     <h3>Histórico de movimentações</h3>
 
@@ -6255,10 +6296,16 @@ function renderMovements() {
     </div>
   `);
 
-  const formElement = panel.querySelector('#gmEntryForm');
+  const entryFormElement = panel.querySelector('#gmEntryForm');
 
-  if (formElement) {
-    formElement.addEventListener('submit', saveEntry);
+  if (entryFormElement) {
+    entryFormElement.addEventListener('submit', saveEntry);
+  }
+
+  const exitFormElement = panel.querySelector('#gmExitForm');
+
+  if (exitFormElement) {
+    exitFormElement.addEventListener('submit', saveExit);
   }
 }
 
