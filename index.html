@@ -7365,11 +7365,11 @@ async function renderInventory(preferredId = null) {
       await renderInventory(selectedInventory.id);
     });
   }
-    const cancelButton =
+    const cancelButtonElement =
     panel.querySelector('#gmInventoryCancel');
 
-  if (cancelButton) {
-    cancelButton.addEventListener('click', async () => {
+  if (cancelButtonElement) {
+    cancelButtonElement.addEventListener('click', async () => {
       const reason = prompt(
         'Informe o motivo do cancelamento deste inventário:'
       );
@@ -7387,8 +7387,8 @@ async function renderInventory(preferredId = null) {
         return;
       }
 
-      cancelButton.disabled = true;
-      cancelButton.textContent = 'Cancelando...';
+      cancelButtonElement.disabled = true;
+      cancelButtonElement.textContent = 'Cancelando...';
 
       const { error } = await cloud.rpc(
         'vosco_gm_cancel_inventory',
@@ -7400,8 +7400,8 @@ async function renderInventory(preferredId = null) {
 
       if (error) {
         notify(error.message, true);
-        cancelButton.disabled = false;
-        cancelButton.textContent = 'Cancelar inventário';
+        cancelButtonElement.disabled = false;
+        cancelButtonElement.textContent = 'Cancelar inventário';
         return;
       }
 
