@@ -5245,6 +5245,7 @@ else if (targetId !== 'signOutBtn') {
     balances: [],
     movements: [],
     transfers: [],
+    reservations: [],
     members: [],
     role: null,
     ready: false
@@ -5300,6 +5301,7 @@ else if (targetId !== 'signOutBtn') {
       balances,
       movements,
       transfers,
+      reservations,
       members
     ] = await Promise.all([
       cloud.from('vosco_gm_members')
@@ -5339,6 +5341,10 @@ else if (targetId !== 'signOutBtn') {
       cloud.from('vosco_gm_transfers')
         .select('*'),
 
+      cloud.from('vosco_gm_reservations')
+        .select('*')
+        .order('created_at', { ascending: false }),
+      
       cloud.from('vosco_gm_members')
         .select('user_id,full_name')
         .eq('active', true)
@@ -5346,7 +5352,7 @@ else if (targetId !== 'signOutBtn') {
 
     for (const result of [
       profile, products, suppliers, categories, links,
-      locations, balances, movements, transfers, members
+      locations, balances, movements, transfers, reservations, members
     ]) {
       if (result.error) throw result.error;
     }
@@ -5363,7 +5369,8 @@ else if (targetId !== 'signOutBtn') {
     gm.locations = locations.data || [];
     gm.balances = balances.data || [];
     gm.movements = movements.data || [];
-    gm.transfers = transfers.data || [];  
+    gm.transfers = transfers.data || [];
+    gm.reservations = reservations.data || [];  
     gm.members = members.data || [];
     gm.ready = true;
 
