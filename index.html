@@ -6588,6 +6588,53 @@ async function saveEntry(event) {
   }
 }
 
+async function saveExit(event) {
+  event.preventDefault();
+
+  if (!canManage()) {
+    return notify('Sem permissão para registrar saídas.', true);
+  }
+
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form).entries());
+
+  const quantity = Number(data.quantity);
+
+  if (!data.product_id || !data.location_id ||
+      !Number.isFinite(quantity) || quantity <= 0 ||
+      !data.reason?.trim()) {
+    return notify('Confira os dados obrigatórios da saída.', true);
+  }
+
+  const button = form.querySelector('[type="submit"]');
+  button.disabled = true;
+  button.textContent = 'Registrando...';
+
+  try {
+    const result = await cloud.rpc('vosco_gm_register_exit', {
+      p_product_id: data.product_id,
+      p_location_id: data.location_id,
+      p_quantity: quantity,
+      p_reason: data.reason.trim(),
+      p_notes: data.notes.trim() || null,
+      p_reservation_id: null
+    });
+
+    if (result.error) throw result.error;
+
+    await loadOperationalData();
+
+    notify('Saída registrada com sucesso.');
+
+  } catch (error) {
+    console.error('[VOSCO GM Saída]', error);
+    notify(error.message || 'Não foi possível registrar a saída.', true);
+
+    button.disabled = false;
+    button.textContent = 'Registrar saída';
+  }
+}
+
   window.gmInit = async function () {
     try {
       if (typeof previousInit === 'function') {
