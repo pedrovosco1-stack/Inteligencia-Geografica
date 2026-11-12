@@ -5183,19 +5183,19 @@ else if (targetId !== 'signOutBtn') {
 </script>
 
 <script>
-(function () {
-  const panel = document.getElementById('gestaoMateriaisPanel');
-  if (!panel || typeof cloud === 'undefined') return;
-
   const gm = {
     products: [],
     suppliers: [],
     categories: [],
     links: [],
+    locations: [],
+    balances: [],
+    movements: [],
+    members: [],
     role: null,
     ready: false
   };
-
+  
   const canManage = () => ['admin', 'manager'].includes(gm.role);
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({
@@ -5230,37 +5230,66 @@ else if (targetId !== 'signOutBtn') {
     content.innerHTML = html;
   }
 
-  async function loadOperationalData() {
+    async function loadOperationalData() {
     if (!cloudUser?.id) {
       notify('Não foi possível identificar o usuário autenticado.', true);
       return;
     }
 
-    const [profile, products, suppliers, categories, links] =
-      await Promise.all([
-        cloud.from('vosco_gm_members')
-          .select('role,active')
-          .eq('user_id', cloudUser.id)
-          .maybeSingle(),
+    const [
+      profile,
+      products,
+      suppliers,
+      categories,
+      links,
+      locations,
+      balances,
+      movements,
+      members
+    ] = await Promise.all([
+      cloud.from('vosco_gm_members')
+        .select('role,active')
+        .eq('user_id', cloudUser.id)
+        .maybeSingle(),
 
-        cloud.from('vosco_gm_products')
-          .select('*')
-          .order('name'),
+      cloud.from('vosco_gm_products')
+        .select('*')
+        .order('name'),
 
-        cloud.from('vosco_gm_suppliers')
-          .select('*')
-          .order('name'),
+      cloud.from('vosco_gm_suppliers')
+        .select('*')
+        .order('name'),
 
-        cloud.from('vosco_gm_categories')
-          .select('*')
-          .eq('active', true)
-          .order('name'),
+      cloud.from('vosco_gm_categories')
+        .select('*')
+        .eq('active', true)
+        .order('name'),
 
-        cloud.from('vosco_gm_product_suppliers')
-          .select('*')
-      ]);
+      cloud.from('vosco_gm_product_suppliers')
+        .select('*'),
 
-    for (const result of [profile, products, suppliers, categories, links]) {
+      cloud.from('vosco_gm_locations')
+        .select('*')
+        .eq('active', true)
+        .order('name'),
+
+      cloud.from('vosco_gm_balances')
+        .select('*'),
+
+      cloud.from('vosco_gm_movements')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200),
+
+      cloud.from('vosco_gm_members')
+        .select('user_id,full_name')
+        .eq('active', true)
+    ]);
+
+    for (const result of [
+      profile, products, suppliers, categories, links,
+      locations, balances, movements, members
+    ]) {
       if (result.error) throw result.error;
     }
 
@@ -5273,12 +5302,17 @@ else if (targetId !== 'signOutBtn') {
     gm.suppliers = suppliers.data || [];
     gm.categories = categories.data || [];
     gm.links = links.data || [];
+    gm.locations = locations.data || [];
+    gm.balances = balances.data || [];
+    gm.movements = movements.data || [];
+    gm.members = members.data || [];
     gm.ready = true;
 
     renderMaterials();
     renderSuppliers();
+    renderMovements();
   }
-
+  
   function categoryOptions(selected = '') {
     return '<option value="">Sem categoria</option>' +
       gm.categories.map(c =>
@@ -5286,6 +5320,28 @@ else if (targetId !== 'signOutBtn') {
           ${esc(c.name)}
         </option>`
       ).join('');
+  }
+
+    function locationOptions(selected = '') {
+    return '<option value="">Selecione o local</option>' +
+      gm.locations.map(location => `
+        <option value="${location.id}"
+          ${location.id === selected ? 'selected' : ''}>
+          ${esc(location.name)}
+        </option>
+      `).join('');
+  }
+
+  function activeSupplierOptions(selected = '') {
+    return '<option value="">Sem fornecedor informado</option>' +
+      gm.suppliers
+        .filter(supplier => supplier.active)
+        .map(supplier => `
+          <option value="${supplier.id}"
+            ${supplier.id === selected ? 'selected' : ''}>
+            ${esc(supplier.name)}
+          </option>
+        `).join('');
   }
 
   function renderMaterials(editing = null) {
