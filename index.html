@@ -5036,10 +5036,9 @@ else if (targetId !== 'signOutBtn') {
       <p class="gm-description">
         Acompanhamento consolidado dos materiais e da posição de estoque.
       </p>
-      <div class="gm-placeholder">
-        <strong>Painel de indicadores</strong>
-        Os indicadores de estoque, disponibilidade, valor e necessidade de reposição serão conectados ao Supabase na próxima etapa.
-      </div>
+      <div class="gm-description">
+  Indicadores consolidados dos materiais, estoque físico, valores e movimentações da VOSCO.
+</div>
     </section>
 
     <section class="gm-section" data-gm-section="materiais">
@@ -5195,6 +5194,7 @@ else if (targetId !== 'signOutBtn') {
     locations: [],
     balances: [],
     movements: [],
+    transfers: [],
     members: [],
     role: null,
     ready: false
@@ -5249,6 +5249,7 @@ else if (targetId !== 'signOutBtn') {
       locations,
       balances,
       movements,
+      transfers,
       members
     ] = await Promise.all([
       cloud.from('vosco_gm_members')
@@ -5285,6 +5286,10 @@ else if (targetId !== 'signOutBtn') {
         .order('created_at', { ascending: false })
         .limit(200),
 
+      cloud.from('vosco_gm_transfers')
+        .select('*')
+        .order('created_at', { ascending: false }),
+
       cloud.from('vosco_gm_members')
         .select('user_id,full_name')
         .eq('active', true)
@@ -5292,7 +5297,7 @@ else if (targetId !== 'signOutBtn') {
 
     for (const result of [
       profile, products, suppliers, categories, links,
-      locations, balances, movements, members
+      locations, balances, movements, transfers, members
     ]) {
       if (result.error) throw result.error;
     }
@@ -5309,6 +5314,7 @@ else if (targetId !== 'signOutBtn') {
     gm.locations = locations.data || [];
     gm.balances = balances.data || [];
     gm.movements = movements.data || [];
+    gm.transfers = transfers.data || [];  
     gm.members = members.data || [];
     gm.ready = true;
 
@@ -5635,7 +5641,11 @@ else if (targetId !== 'signOutBtn') {
         if (product) renderMaterials(product);
       });
     });
-
+    panel.querySelectorAll('[data-gm-delete-product]').forEach(button => {
+  button.addEventListener('click', () => {
+    deleteProduct(button.dataset.gmDeleteProduct);
+  });
+});
     panel.querySelector('#gmProductSearch')?.addEventListener('input', function () {
       const term = this.value.toLocaleLowerCase('pt-BR');
       panel.querySelectorAll('#gmProductRows tr').forEach(row => {
@@ -5644,7 +5654,61 @@ else if (targetId !== 'signOutBtn') {
       });
     });
   }
+  async function deleteProduct(productId) {
+  if (!canManage()) {
+    return notify('Sem permissão para excluir materiais.', true);
+  }
 
+  const product = gm.products.find(p => p.id === productId);
+
+  if (!product || product.status === 'deleted') {
+    return notify('Material não encontrado ou já excluído.', true);
+  }
+
+  const physicalQuantity = gm.balances
+    .filter(b => b.product_id === productId)
+    .reduce((sum, b) => sum + Number(b.physical_quantity || 0), 0);
+
+  if (physicalQuantity > 0) {
+    return notify(
+      'Este material possui saldo físico. Regularize o estoque antes de excluí-lo.',
+      true
+    );
+  }
+
+  if (!window.confirm(
+    `Deseja realmente excluir o material "${product.name}"? O histórico de movimentações será preservado.`
+  )) {
+    return;
+  }
+
+  try {
+    const { data, error } = await cloud
+      .from('vosco_gm_products')
+      .update({
+        status: 'deleted',
+        deleted_at: new Date().toISOString(),
+        updated_by: cloudUser.id
+      })
+      .eq('id', productId)
+      .select('id')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error('Não foi possível excluir o material. Verifique as permissões.');
+    }
+
+    await loadOperationalData();
+
+    notify('Material excluído com sucesso. O histórico foi preservado.');
+
+  } catch (error) {
+    console.error('[VOSCO GM Exclusão]', error);
+    notify(error.message || 'Não foi possível excluir o material.', true);
+  }
+}
   async function saveProduct(event) {
     event.preventDefault();
     if (!canManage()) return notify('Sem permissão para cadastrar materiais.', true);
@@ -5771,12 +5835,18 @@ else if (targetId !== 'signOutBtn') {
         <td>${esc(item.email || '—')}</td>
         <td>${item.active ? 'Ativo' : 'Inativo'}</td>
         <td>
-          ${canManage() ? `
-            <button type="button" class="gm-action secondary"
-              data-gm-edit-supplier="${item.id}">
-              Editar
-            </button>
-          ` : '—'}
+         ${canManage() ? `
+  ${item.status !== 'deleted' ? `
+    <button type="button" class="gm-action secondary"
+      data-gm-edit-product="${item.id}">
+      Editar
+    </button>
+    <button type="button" class="gm-action secondary"
+      data-gm-delete-product="${item.id}">
+      Excluir
+    </button>
+  ` : 'Excluído'}
+` : '—'}
         </td>
       </tr>
     `).join('');
