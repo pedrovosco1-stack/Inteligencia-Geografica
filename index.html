@@ -5371,6 +5371,7 @@ else if (targetId !== 'signOutBtn') {
     renderMaterials();
     renderSuppliers();
     renderMovements();
+    renderTransfers();  
   }
   function renderOverview() {
   const activeProducts = gm.products.filter(
@@ -6259,6 +6260,283 @@ function renderMovements() {
   if (formElement) {
     formElement.addEventListener('submit', saveEntry);
   }
+}
+
+function renderTransfers() {
+  const activeProducts = gm.products.filter(
+    product => product.status === 'active' &&
+      product.active !== false &&
+      !product.deleted_at
+  );
+
+  const productOptions =
+    '<option value="">Selecione o material</option>' +
+    activeProducts.map(product => `
+      <option value="${product.id}">
+        ${esc(product.name)}${product.code ? ' — ' + esc(product.code) : ''}
+      </option>
+    `).join('');
+
+  const locations = gm.locations.filter(
+    location => location.active !== false
+  );
+
+  const locationOptionsHTML =
+    '<option value="">Selecione o local</option>' +
+    locations.map(location => `
+      <option value="${location.id}">
+        ${esc(location.name)}
+      </option>
+    `).join('');
+
+  const form = `
+    <div class="gm-placeholder" style="margin-bottom:22px">
+      <strong>Solicitar transferência de material</strong>
+
+      <form id="gmTransferForm">
+        <div class="gm-form-grid">
+
+          <label>Material *
+            <select name="product_id" required>
+              ${productOptions}
+            </select>
+          </label>
+
+          <label>Quantidade *
+            <input name="quantity" type="number"
+              min="0.001" step="0.001" required>
+          </label>
+
+          <label>Local de origem *
+            <select name="origin_location_id" required>
+              ${locationOptionsHTML}
+            </select>
+          </label>
+
+          <label>Local de destino *
+            <select name="destination_location_id" required>
+              ${locationOptionsHTML}
+            </select>
+          </label>
+
+          <label style="grid-column:1/-1">Observações
+            <input name="notes"
+              placeholder="Informações adicionais">
+          </label>
+
+        </div>
+
+        <div style="display:flex;gap:9px;margin-top:16px">
+          <button class="gm-action" type="submit">
+            Solicitar transferência
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  const statusLabels = {
+    requested: 'Solicitada',
+    in_transit: 'Em trânsito',
+    received: 'Recebida',
+    cancelled: 'Cancelada'
+  };
+
+  const rows = gm.transfers.map(transfer => {
+    const product = gm.products.find(
+      item => item.id === transfer.product_id
+    );
+
+    const origin = gm.locations.find(
+      item => item.id === transfer.origin_location_id
+    );
+
+    const destination = gm.locations.find(
+      item => item.id === transfer.destination_location_id
+    );
+
+    const requester = gm.members.find(
+      item => item.user_id === transfer.requested_by
+    );
+
+    const actions = `
+      ${transfer.status === 'requested' ? `
+        <button class="gm-action"
+          type="button"
+          data-gm-dispatch="${transfer.id}">
+          Despachar
+        </button>
+        ${canManage() ? `
+          <button class="gm-action"
+            type="button"
+            data-gm-cancel="${transfer.id}">
+            Cancelar
+          </button>
+        ` : ''}
+      ` : ''}
+
+      ${transfer.status === 'in_transit' ? `
+        <button class="gm-action"
+          type="button"
+          data-gm-receive="${transfer.id}">
+          Confirmar recebimento
+        </button>
+      ` : ''}
+    `;
+
+    return `
+      <tr>
+        <td>${transfer.created_at
+          ? new Date(transfer.created_at).toLocaleString('pt-BR')
+          : '—'}</td>
+        <td>${esc(product?.name || 'Material não localizado')}</td>
+        <td>${esc(origin?.name || '—')}</td>
+        <td>${esc(destination?.name || '—')}</td>
+        <td>${Number(transfer.quantity || 0).toLocaleString('pt-BR')}</td>
+        <td>${esc(statusLabels[transfer.status] || transfer.status || '—')}</td>
+        <td>${esc(requester?.full_name || '—')}</td>
+        <td>${actions || '—'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  setContent('transferencias', `
+    ${form}
+
+    <h3>Histórico de transferências</h3>
+
+    <div class="gm-table-wrap">
+      <table class="gm-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Material</th>
+            <th>Origem</th>
+            <th>Destino</th>
+            <th>Quantidade</th>
+            <th>Status</th>
+            <th>Solicitante</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows || '<tr><td colspan="8">Nenhuma transferência registrada.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `);
+
+  const formElement = panel.querySelector('#gmTransferForm');
+
+  if (formElement) {
+    formElement.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      const values = new FormData(formElement);
+
+      const productId = values.get('product_id');
+      const originId = values.get('origin_location_id');
+      const destinationId = values.get('destination_location_id');
+      const quantity = Number(values.get('quantity'));
+      const notes = values.get('notes') || null;
+
+      if (originId === destinationId) {
+        notify('A origem e o destino devem ser diferentes.', true);
+        return;
+      }
+
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        notify('Informe uma quantidade válida.', true);
+        return;
+      }
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_request_transfer',
+        {
+          p_product_id: productId,
+          p_origin_location_id: originId,
+          p_destination_location_id: destinationId,
+          p_quantity: quantity,
+          p_notes: notes
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Transferência solicitada com sucesso.');
+      await loadOperationalData();
+    });
+  }
+
+  panel.querySelectorAll('[data-gm-dispatch]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const id = button.dataset.gmDispatch;
+
+      if (!confirm('Confirma o despacho desta transferência?')) return;
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_dispatch_transfer',
+        { p_transfer_id: id }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Transferência despachada com sucesso.');
+      await loadOperationalData();
+    });
+  });
+
+  panel.querySelectorAll('[data-gm-receive]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const id = button.dataset.gmReceive;
+
+      if (!confirm('Confirma o recebimento desta transferência?')) return;
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_receive_transfer',
+        { p_transfer_id: id }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Recebimento confirmado com sucesso.');
+      await loadOperationalData();
+    });
+  });
+
+  panel.querySelectorAll('[data-gm-cancel]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const id = button.dataset.gmCancel;
+      const reason = prompt('Informe o motivo do cancelamento:');
+
+      if (reason === null) return;
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_cancel_transfer',
+        {
+          p_transfer_id: id,
+          p_reason: reason || null
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Transferência cancelada.');
+      await loadOperationalData();
+    });
+  });
 }
 
 async function saveEntry(event) {
