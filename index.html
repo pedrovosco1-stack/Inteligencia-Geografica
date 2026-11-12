@@ -6525,6 +6525,344 @@ function renderTransfers() {
     });
   }
 
+async function renderReservations() {
+  const activeProducts = gm.products.filter(
+    product => product.status === 'active' &&
+      product.active !== false &&
+      !product.deleted_at
+  );
+
+  const locations = gm.locations.filter(
+    location => location.active !== false
+  );
+
+  const { data: stockPosition, error: stockError } = await cloud
+    .from('vosco_gm_stock_position')
+    .select('*');
+
+  if (stockError) {
+    notify('Erro ao consultar disponibilidade: ' + stockError.message, true);
+    return;
+  }
+
+  const stock = stockPosition || [];
+
+  const productOptions =
+    '<option value="">Selecione o material</option>' +
+    activeProducts.map(product => `
+      <option value="${product.id}">
+        ${esc(product.name)}${product.code ? ' — ' + esc(product.code) : ''}
+      </option>
+    `).join('');
+
+  const locationOptions =
+    '<option value="">Selecione o local</option>' +
+    locations.map(location => `
+      <option value="${location.id}">
+        ${esc(location.name)}
+      </option>
+    `).join('');
+
+  const canEdit = canManage();
+
+  const form = canEdit ? `
+    <div class="gm-placeholder" style="margin-bottom:22px">
+      <strong>Nova reserva de material</strong>
+
+      <form id="gmReservationForm">
+        <div class="gm-form-grid">
+
+          <label>Material *
+            <select name="product_id" id="gmReservationProduct" required>
+              ${productOptions}
+            </select>
+          </label>
+
+          <label>Local de utilização *
+            <select name="location_id" id="gmReservationLocation" required>
+              ${locationOptions}
+            </select>
+          </label>
+
+          <label>Quantidade *
+            <input name="quantity" type="number"
+              min="0.001" step="0.001" required>
+          </label>
+
+          <label>Data prevista de utilização
+            <input name="expected_use_date" type="date">
+          </label>
+
+          <label style="grid-column:1/-1">Motivo da reserva *
+            <input name="reason" required
+              placeholder="Ex.: Projeto, obra ou demanda interna">
+          </label>
+
+          <label style="grid-column:1/-1">Observações
+            <input name="notes"
+              placeholder="Informações adicionais">
+          </label>
+
+        </div>
+
+        <div id="gmReservationAvailability"
+          class="gm-description" style="margin-top:14px">
+          Selecione o material e o local para consultar a disponibilidade.
+        </div>
+
+        <div style="display:flex;gap:9px;margin-top:16px">
+          <button class="gm-action" type="submit">
+            Criar reserva
+          </button>
+        </div>
+      </form>
+    </div>
+  ` : `
+    <div class="gm-description">
+      Seu perfil permite consultar as reservas, mas não criar ou cancelar reservas.
+    </div>
+  `;
+
+  const statusLabels = {
+    active: 'Ativa',
+    fulfilled: 'Atendida',
+    cancelled: 'Cancelada'
+  };
+
+  const reservations = [...gm.reservations].sort((a, b) =>
+    new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
+
+  const rows = reservations.map(reservation => {
+    const product = gm.products.find(
+      item => item.id === reservation.product_id
+    );
+
+    const location = gm.locations.find(
+      item => item.id === reservation.location_id
+    );
+
+    const responsible = gm.members.find(
+      item => item.user_id === reservation.responsible_user_id
+    );
+
+    const quantity = Number(reservation.quantity || 0);
+    const fulfilled = Number(reservation.fulfilled_quantity || 0);
+    const pending = Math.max(0, quantity - fulfilled);
+
+    const actions = canEdit && reservation.status === 'active' ? `
+      <button class="gm-action"
+        type="button"
+        data-gm-reservation-cancel="${reservation.id}">
+        Cancelar
+      </button>
+    ` : '—';
+
+    return `
+      <tr>
+        <td>${reservation.created_at
+          ? new Date(reservation.created_at).toLocaleDateString('pt-BR')
+          : '—'}</td>
+        <td>${esc(product?.name || 'Material não localizado')}</td>
+        <td>${esc(location?.name || '—')}</td>
+        <td>${quantity.toLocaleString('pt-BR')}</td>
+        <td>${fulfilled.toLocaleString('pt-BR')}</td>
+        <td>${pending.toLocaleString('pt-BR')}</td>
+        <td>${reservation.expected_use_date
+          ? new Date(reservation.expected_use_date + 'T12:00:00')
+              .toLocaleDateString('pt-BR')
+          : '—'}</td>
+        <td>${esc(responsible?.full_name || '—')}</td>
+        <td>${esc(statusLabels[reservation.status] || reservation.status || '—')}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const availabilityRows = stock.map(item => `
+    <tr>
+      <td>${esc(item.product_name)}</td>
+      <td>${esc(item.location_name)}</td>
+      <td>${Number(item.physical_quantity || 0).toLocaleString('pt-BR')}</td>
+      <td>${Number(item.reserved_quantity || 0).toLocaleString('pt-BR')}</td>
+      <td>${Number(item.available_quantity || 0).toLocaleString('pt-BR')}</td>
+    </tr>
+  `).join('');
+
+  setContent('reservas', `
+    ${form}
+
+    <h3>Disponibilidade de materiais</h3>
+
+    <div class="gm-table-wrap">
+      <table class="gm-table">
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Local</th>
+            <th>Estoque físico</th>
+            <th>Reservado</th>
+            <th>Disponível</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${availabilityRows ||
+            '<tr><td colspan="5">Nenhuma posição de estoque encontrada.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:24px">Histórico de reservas</h3>
+
+    <div class="gm-table-wrap">
+      <table class="gm-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Material</th>
+            <th>Local</th>
+            <th>Reservada</th>
+            <th>Atendida</th>
+            <th>Pendente</th>
+            <th>Uso previsto</th>
+            <th>Responsável</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows ||
+            '<tr><td colspan="10">Nenhuma reserva registrada.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `);
+
+  const formElement = panel.querySelector('#gmReservationForm');
+
+  if (formElement) {
+    const productInput = formElement.querySelector(
+      '#gmReservationProduct'
+    );
+
+    const locationInput = formElement.querySelector(
+      '#gmReservationLocation'
+    );
+
+    const availabilityBox = formElement.querySelector(
+      '#gmReservationAvailability'
+    );
+
+    const updateAvailability = () => {
+      const productId = productInput.value;
+      const locationId = locationInput.value;
+
+      const item = stock.find(position =>
+        position.product_id === productId &&
+        position.location_id === locationId
+      );
+
+      if (!productId || !locationId) {
+        availabilityBox.textContent =
+          'Selecione o material e o local para consultar a disponibilidade.';
+        return;
+      }
+
+      const available = Number(item?.available_quantity || 0);
+      const physical = Number(item?.physical_quantity || 0);
+      const reserved = Number(item?.reserved_quantity || 0);
+
+      availabilityBox.textContent =
+        `Estoque físico: ${physical.toLocaleString('pt-BR')} | ` +
+        `Reservado: ${reserved.toLocaleString('pt-BR')} | ` +
+        `Disponível: ${available.toLocaleString('pt-BR')}`;
+    };
+
+    productInput.addEventListener('change', updateAvailability);
+    locationInput.addEventListener('change', updateAvailability);
+
+    formElement.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      const values = new FormData(formElement);
+
+      const productId = values.get('product_id');
+      const locationId = values.get('location_id');
+      const quantity = Number(values.get('quantity'));
+      const reason = String(values.get('reason') || '').trim();
+      const expectedDate = values.get('expected_use_date') || null;
+      const notes = String(values.get('notes') || '').trim() || null;
+
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        notify('Informe uma quantidade válida.', true);
+        return;
+      }
+
+      const item = stock.find(position =>
+        position.product_id === productId &&
+        position.location_id === locationId
+      );
+
+      const available = Number(item?.available_quantity || 0);
+
+      if (quantity > available) {
+        notify(
+          `Quantidade indisponível. Saldo disponível: ${available.toLocaleString('pt-BR')}.`,
+          true
+        );
+        return;
+      }
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_create_reservation',
+        {
+          p_product_id: productId,
+          p_location_id: locationId,
+          p_quantity: quantity,
+          p_reason: reason,
+          p_expected_use_date: expectedDate,
+          p_notes: notes
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Reserva criada com sucesso.');
+      await loadOperationalData();
+    });
+  }
+
+  panel.querySelectorAll('[data-gm-reservation-cancel]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const reservationId =
+        button.getAttribute('data-gm-reservation-cancel');
+
+      if (!confirm('Deseja realmente cancelar esta reserva?')) {
+        return;
+      }
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_cancel_reservation',
+        {
+          p_reservation_id: reservationId,
+          p_reason: 'Cancelada pelo usuário na Gestão de Materiais.'
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Reserva cancelada com sucesso.');
+      await loadOperationalData();
+    });
+  });
+}
+
   panel.querySelectorAll('[data-gm-dispatch]').forEach(button => {
     button.addEventListener('click', async () => {
       const id = button.dataset.gmDispatch;
