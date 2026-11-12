@@ -5312,11 +5312,159 @@ else if (targetId !== 'signOutBtn') {
     gm.members = members.data || [];
     gm.ready = true;
 
+    renderOverview();  
     renderMaterials();
     renderSuppliers();
     renderMovements();
   }
-  
+  function renderOverview() {
+  const activeProducts = gm.products.filter(
+    p => p.status === 'active' && p.active !== false && !p.deleted_at
+  );
+
+  const balances = gm.balances.filter(b =>
+    activeProducts.some(p => p.id === b.product_id)
+  );
+
+  const getQuantity = productId =>
+    balances
+      .filter(b => b.product_id === productId)
+      .reduce((sum, b) => sum + Number(b.physical_quantity || 0), 0);
+
+  const totalUnits = balances.reduce(
+    (sum, b) => sum + Number(b.physical_quantity || 0), 0
+  );
+
+  const totalValue = activeProducts.reduce(
+    (sum, p) => sum + getQuantity(p.id) * Number(p.average_unit_cost || 0), 0
+  );
+
+  const belowMinimum = activeProducts.filter(p =>
+    Number(p.minimum_stock || 0) > 0 &&
+    getQuantity(p.id) <= Number(p.minimum_stock)
+  );
+
+  const zeroStock = activeProducts.filter(p => getQuantity(p.id) <= 0);
+
+  const money = value => new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(value);
+
+  const number = value => new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 3
+  }).format(value);
+
+  const locationsHtml = gm.locations.map(location => {
+    const quantity = balances
+      .filter(b => b.location_id === location.id)
+      .reduce((sum, b) => sum + Number(b.physical_quantity || 0), 0);
+
+    return `
+      <tr>
+        <td>${esc(location.name)}</td>
+        <td>${number(quantity)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const latestMovements = gm.movements.slice(0, 5).map(m => {
+    const product = gm.products.find(p => p.id === m.product_id);
+    const location = gm.locations.find(l => l.id === m.location_id);
+    const types = {
+      entry: 'Entrada',
+      exit: 'Saída',
+      transfer_out: 'Transferência enviada',
+      transfer_in: 'Transferência recebida',
+      adjustment: 'Ajuste',
+      reservation: 'Reserva'
+    };
+
+    return `
+      <tr>
+        <td>${esc(product?.name || 'Material não identificado')}</td>
+        <td>${esc(types[m.movement_type] || m.movement_type)}</td>
+        <td>${number(m.quantity)}</td>
+        <td>${esc(location?.name || '—')}</td>
+        <td>${new Date(m.created_at).toLocaleDateString('pt-BR')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const alertsHtml = belowMinimum.length
+    ? belowMinimum.map(p => `
+        <tr>
+          <td>${esc(p.name)}</td>
+          <td>${number(getQuantity(p.id))}</td>
+          <td>${number(p.minimum_stock)}</td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="3">Nenhum material no mínimo ou abaixo dele.</td></tr>';
+
+  setContent('visao', `
+    <div class="gm-form-grid" style="margin-bottom:22px">
+      <div class="gm-placeholder">
+        <strong>Materiais ativos</strong>
+        <div style="font-size:26px;font-weight:700">${activeProducts.length}</div>
+      </div>
+      <div class="gm-placeholder">
+        <strong>Estoque físico total</strong>
+        <div style="font-size:26px;font-weight:700">${number(totalUnits)}</div>
+      </div>
+      <div class="gm-placeholder">
+        <strong>Valor estimado do estoque</strong>
+        <div style="font-size:26px;font-weight:700">${money(totalValue)}</div>
+      </div>
+      <div class="gm-placeholder">
+        <strong>Materiais no mínimo ou abaixo</strong>
+        <div style="font-size:26px;font-weight:700">${belowMinimum.length}</div>
+      </div>
+      <div class="gm-placeholder">
+        <strong>Materiais sem estoque físico</strong>
+        <div style="font-size:26px;font-weight:700">${zeroStock.length}</div>
+      </div>
+    </div>
+
+    <h3>Estoque físico por local</h3>
+    <div class="gm-table-wrap">
+      <table class="gm-table">
+        <thead><tr><th>Local</th><th>Quantidade física</th></tr></thead>
+        <tbody>${locationsHtml}</tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:24px">Atenção ao estoque mínimo</h3>
+    <div class="gm-table-wrap">
+      <table class="gm-table">
+        <thead>
+          <tr><th>Material</th><th>Saldo físico</th><th>Estoque mínimo</th></tr>
+        </thead>
+        <tbody>${alertsHtml}</tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:24px">Últimas movimentações</h3>
+    <div class="gm-table-wrap">
+      <table class="gm-table">
+        <thead>
+          <tr>
+            <th>Material</th><th>Tipo</th><th>Quantidade</th>
+            <th>Local</th><th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${latestMovements || '<tr><td colspan="5">Nenhuma movimentação registrada.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="gm-description" style="margin-top:16px">
+      Os indicadores representam estoque físico. Reservas ainda não são descontadas
+      para calcular disponibilidade. O valor é estimado com base no custo médio
+      cadastrado em cada material.
+    </p>
+  `);
+}
   function categoryOptions(selected = '') {
     return '<option value="">Sem categoria</option>' +
       gm.categories.map(c =>
