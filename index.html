@@ -5379,7 +5379,8 @@ else if (targetId !== 'signOutBtn') {
     renderSuppliers();
     renderMovements();
     renderTransfers();
-    renderReservations();  
+    renderReservations();
+    renderInventory();  
   }
   function renderOverview() {
   const activeProducts = gm.products.filter(
@@ -6931,7 +6932,430 @@ async function renderReservations() {
     });
   });
 }
+async function renderInventory(preferredId = null) {
+  const activeProducts = gm.products.filter(product =>
+    product.status === 'active' &&
+    product.active !== false &&
+    !product.deleted_at
+  );
 
+  const locations = gm.locations.filter(location =>
+    location.active !== false
+  );
+
+  const canOperate = ['admin', 'manager', 'operator'].includes(gm.role);
+  const canComplete = canManage();
+
+  const [
+    inventoriesResult,
+    itemsResult,
+    stockResult
+  ] = await Promise.all([
+    cloud.from('vosco_gm_inventories')
+      .select('*')
+      .order('started_at', { ascending: false }),
+
+    cloud.from('vosco_gm_inventory_items')
+      .select('*'),
+
+    cloud.from('vosco_gm_stock_position')
+      .select('*')
+  ]);
+
+  for (const result of [
+    inventoriesResult,
+    itemsResult,
+    stockResult
+  ]) {
+    if (result.error) {
+      notify('Erro ao carregar inventário: ' + result.error.message, true);
+      return;
+    }
+  }
+
+  const inventories = inventoriesResult.data || [];
+  const inventoryItems = itemsResult.data || [];
+  const stock = stockResult.data || [];
+
+  const selectedInventory =
+    inventories.find(item => item.id === preferredId) ||
+    inventories.find(item => item.status === 'counting') ||
+    inventories[0] ||
+    null;
+
+  const selectedItems = selectedInventory
+    ? inventoryItems.filter(item =>
+        item.inventory_id === selectedInventory.id
+      )
+    : [];
+
+  const locationOptions =
+    '<option value="">Selecione o local</option>' +
+    locations.map(location => `
+      <option value="${location.id}">
+        ${esc(location.name)}
+      </option>
+    `).join('');
+
+  const productOptions =
+    '<option value="">Selecione o material</option>' +
+    activeProducts.map(product => `
+      <option value="${product.id}">
+        ${esc(product.name)}${product.code ? ' — ' + esc(product.code) : ''}
+      </option>
+    `).join('');
+
+  const inventoryOptions = inventories.map(inventory => {
+    const location = locations.find(item =>
+      item.id === inventory.location_id
+    );
+
+    const type = inventory.inventory_type === 'full'
+      ? 'Geral'
+      : 'Individual';
+
+    const status = {
+      counting: 'Em contagem',
+      completed: 'Concluído',
+      cancelled: 'Cancelado',
+      open: 'Aberto'
+    }[inventory.status] || inventory.status;
+
+    return `
+      <option value="${inventory.id}"
+        ${selectedInventory?.id === inventory.id ? 'selected' : ''}>
+        ${type} — ${esc(location?.name || 'Local não localizado')} — ${status}
+      </option>
+    `;
+  }).join('');
+
+  const startForm = canOperate ? `
+    <div class="gm-placeholder" style="margin-bottom:22px">
+      <strong>Iniciar novo inventário</strong>
+
+      <form id="gmInventoryStartForm">
+        <div class="gm-form-grid">
+
+          <label>Local do inventário *
+            <select name="location_id" required>
+              ${locationOptions}
+            </select>
+          </label>
+
+          <label>Tipo de inventário *
+            <select name="inventory_type" required>
+              <option value="full">Inventário geral</option>
+              <option value="individual">Inventário individual</option>
+            </select>
+          </label>
+
+          <label style="grid-column:1/-1">
+            Observações
+            <input name="notes"
+              placeholder="Informações sobre esta conferência">
+          </label>
+
+        </div>
+
+        <button class="gm-action" type="submit"
+          style="margin-top:16px">
+          Iniciar inventário
+        </button>
+      </form>
+    </div>
+  ` : '';
+
+  const isCounting = selectedInventory?.status === 'counting';
+
+  const countForm = canOperate && isCounting ? `
+    <div class="gm-placeholder" style="margin-bottom:22px">
+      <strong>Registrar contagem física</strong>
+
+      <form id="gmInventoryCountForm">
+        <div class="gm-form-grid">
+
+          <label>Material *
+            <select name="product_id" id="gmInventoryProduct" required>
+              ${productOptions}
+            </select>
+          </label>
+
+          <label>Quantidade encontrada *
+            <input name="counted_quantity"
+              type="number" min="0" step="0.001" required>
+          </label>
+
+          <label style="grid-column:1/-1">
+            Observações
+            <input name="notes"
+              placeholder="Informações sobre a contagem">
+          </label>
+
+        </div>
+
+        <div id="gmInventoryExpected"
+          class="gm-description" style="margin-top:12px">
+          Selecione um material para consultar o saldo esperado.
+        </div>
+
+        <button class="gm-action" type="submit"
+          style="margin-top:16px">
+          Registrar contagem
+        </button>
+      </form>
+    </div>
+  ` : '';
+
+  const itemRows = selectedItems.map(item => {
+    const product = gm.products.find(product =>
+      product.id === item.product_id
+    );
+
+    const expected = Number(item.expected_quantity || 0);
+    const counted = item.counted_quantity === null
+      ? null
+      : Number(item.counted_quantity);
+
+    const difference = item.difference_quantity === null
+      ? null
+      : Number(item.difference_quantity);
+
+    return `
+      <tr>
+        <td>${esc(product?.name || 'Material não localizado')}</td>
+        <td>${expected.toLocaleString('pt-BR')}</td>
+        <td>${counted === null ? 'Pendente' : counted.toLocaleString('pt-BR')}</td>
+        <td>${difference === null ? '—' : difference.toLocaleString('pt-BR')}</td>
+        <td>${item.counted_at
+          ? new Date(item.counted_at).toLocaleString('pt-BR')
+          : '—'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const statusLabels = {
+    counting: 'Em contagem',
+    completed: 'Concluído',
+    cancelled: 'Cancelado',
+    open: 'Aberto'
+  };
+
+  const selectedLocation = locations.find(location =>
+    location.id === selectedInventory?.location_id
+  );
+
+  const completedButton =
+    canComplete && isCounting ? `
+      <button class="gm-action"
+        type="button"
+        id="gmInventoryComplete">
+        Concluir inventário e aplicar ajustes
+      </button>
+    ` : '';
+
+  const inventoryDetails = selectedInventory ? `
+    <div class="gm-placeholder" style="margin-bottom:20px">
+      <strong>Inventário selecionado</strong>
+      <p>Local: ${esc(selectedLocation?.name || '—')}</p>
+      <p>Tipo: ${selectedInventory.inventory_type === 'full'
+        ? 'Geral'
+        : 'Individual'}</p>
+      <p>Status: ${esc(statusLabels[selectedInventory.status] || selectedInventory.status)}</p>
+      <p>Iniciado em: ${selectedInventory.started_at
+        ? new Date(selectedInventory.started_at).toLocaleString('pt-BR')
+        : '—'}</p>
+      ${selectedInventory.notes
+        ? `<p>Observações: ${esc(selectedInventory.notes)}</p>`
+        : ''}
+      ${completedButton}
+    </div>
+  ` : `
+    <div class="gm-description">
+      Nenhum inventário registrado até o momento.
+    </div>
+  `;
+
+  setContent('inventario', `
+    ${startForm}
+
+    <h3>Histórico de inventários</h3>
+
+    <div class="gm-form-grid" style="margin-bottom:20px">
+      <label>Selecionar inventário
+        <select id="gmInventorySelect">
+          ${inventoryOptions ||
+            '<option value="">Nenhum inventário registrado</option>'}
+        </select>
+      </label>
+    </div>
+
+    ${inventoryDetails}
+
+    ${countForm}
+
+    <h3>Itens conferidos</h3>
+
+    <div class="gm-table-wrap">
+      <table class="gm-table">
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Saldo esperado</th>
+            <th>Contagem física</th>
+            <th>Diferença</th>
+            <th>Última contagem</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRows ||
+            '<tr><td colspan="5">Nenhum item registrado neste inventário.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `);
+
+  const inventorySelect = panel.querySelector('#gmInventorySelect');
+
+  if (inventorySelect) {
+    inventorySelect.addEventListener('change', () => {
+      renderInventory(inventorySelect.value);
+    });
+  }
+
+  const startFormElement =
+    panel.querySelector('#gmInventoryStartForm');
+
+  if (startFormElement) {
+    startFormElement.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      const values = new FormData(startFormElement);
+
+      const { data, error } = await cloud.rpc(
+        'vosco_gm_start_inventory',
+        {
+          p_location_id: values.get('location_id'),
+          p_inventory_type: values.get('inventory_type'),
+          p_notes: String(values.get('notes') || '').trim() || null
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Inventário iniciado com sucesso.');
+      await loadOperationalData();
+      await renderInventory(data);
+    });
+  }
+
+  const countFormElement =
+    panel.querySelector('#gmInventoryCountForm');
+
+  if (countFormElement) {
+    const productInput =
+      countFormElement.querySelector('#gmInventoryProduct');
+
+    const expectedBox =
+      countFormElement.querySelector('#gmInventoryExpected');
+
+    const updateExpected = () => {
+      const productId = productInput.value;
+
+      if (!productId || !selectedInventory) {
+        expectedBox.textContent =
+          'Selecione um material para consultar o saldo esperado.';
+        return;
+      }
+
+      const existing = selectedItems.find(item =>
+        item.product_id === productId
+      );
+
+      const position = stock.find(item =>
+        item.product_id === productId &&
+        item.location_id === selectedInventory.location_id
+      );
+
+      const expected = existing
+        ? Number(existing.expected_quantity || 0)
+        : Number(position?.physical_quantity || 0);
+
+      expectedBox.textContent =
+        'Saldo esperado: ' + expected.toLocaleString('pt-BR');
+    };
+
+    productInput.addEventListener('change', updateExpected);
+
+    countFormElement.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      const values = new FormData(countFormElement);
+      const quantity = Number(values.get('counted_quantity'));
+
+      if (!Number.isFinite(quantity) || quantity < 0) {
+        notify('Informe uma quantidade válida.', true);
+        return;
+      }
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_record_inventory_count',
+        {
+          p_inventory_id: selectedInventory.id,
+          p_product_id: values.get('product_id'),
+          p_counted_quantity: quantity,
+          p_notes: String(values.get('notes') || '').trim() || null
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        return;
+      }
+
+      notify('Contagem registrada com sucesso.');
+      await loadOperationalData();
+      await renderInventory(selectedInventory.id);
+    });
+  }
+
+  const completeButton =
+    panel.querySelector('#gmInventoryComplete');
+
+  if (completeButton) {
+    completeButton.addEventListener('click', async () => {
+      if (!confirm(
+        'Deseja concluir este inventário? Os saldos físicos serão ajustados conforme as contagens registradas.'
+      )) {
+        return;
+      }
+
+      completeButton.disabled = true;
+      completeButton.textContent = 'Concluindo...';
+
+      const { error } = await cloud.rpc(
+        'vosco_gm_complete_inventory',
+        {
+          p_inventory_id: selectedInventory.id
+        }
+      );
+
+      if (error) {
+        notify(error.message, true);
+        completeButton.disabled = false;
+        completeButton.textContent =
+          'Concluir inventário e aplicar ajustes';
+        return;
+      }
+
+      notify('Inventário concluído e saldos atualizados.');
+      await loadOperationalData();
+      await renderInventory(selectedInventory.id);
+    });
+  }
+}
 async function saveEntry(event) {
   event.preventDefault();
 
