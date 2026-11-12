@@ -5314,6 +5314,7 @@ else if (targetId !== 'signOutBtn') {
 
     renderMaterials();
     renderSuppliers();
+    renderMovements();
   }
   
   function categoryOptions(selected = '') {
@@ -5839,6 +5840,208 @@ else if (targetId !== 'signOutBtn') {
 
   // Mantém a inicialização de leitura anterior e acrescenta os formulários.
   const previousInit = window.gmInit;
+  
+function renderMovements() {
+  const activeProducts = gm.products.filter(
+    product => product.status === 'active' && product.active !== false
+  );
+
+  const productOptions =
+    '<option value="">Selecione o material</option>' +
+    activeProducts.map(product => `
+      <option value="${product.id}">
+        ${esc(product.name)}${product.code ? ' — ' + esc(product.code) : ''}
+      </option>
+    `).join('');
+
+  const form = canManage() ? `
+    <div class="gm-placeholder" style="margin-bottom:22px">
+      <strong>Registrar entrada de material</strong>
+
+      <form id="gmEntryForm">
+        <div class="gm-form-grid">
+
+          <label>Material *
+            <select name="product_id" required>
+              ${productOptions}
+            </select>
+          </label>
+
+          <label>Local de destino *
+            <select name="location_id" required>
+              ${locationOptions()}
+            </select>
+          </label>
+
+          <label>Quantidade *
+            <input name="quantity" type="number"
+              min="0.001" step="0.001" required>
+          </label>
+
+          <label>Custo unitário *
+            <input name="unit_cost" type="number"
+              min="0" step="0.0001" required>
+          </label>
+
+          <label>Fornecedor
+            <select name="supplier_id">
+              ${activeSupplierOptions()}
+            </select>
+          </label>
+
+          <label>Motivo da entrada
+            <input name="reason"
+              placeholder="Ex.: Compra, devolução...">
+          </label>
+
+          <label style="grid-column:1/-1">Observações
+            <input name="notes"
+              placeholder="Informações adicionais">
+          </label>
+
+        </div>
+
+        <div style="display:flex;gap:9px;margin-top:16px">
+          <button class="gm-action" type="submit">
+            Registrar entrada
+          </button>
+        </div>
+      </form>
+    </div>
+  ` : `
+    <div class="gm-status">
+      Seu perfil permite consultar as movimentações.
+    </div>
+  `;
+
+  const rows = gm.movements.map(movement => {
+    const product = gm.products.find(
+      item => item.id === movement.product_id
+    );
+
+    const location = gm.locations.find(
+      item => item.id === movement.location_id
+    );
+
+    const supplier = gm.suppliers.find(
+      item => item.id === movement.supplier_id
+    );
+
+    const member = gm.members.find(
+      item => item.user_id === movement.responsible_user_id
+    );
+
+    const types = {
+      entry: 'Entrada',
+      exit: 'Saída',
+      transfer_out: 'Transferência enviada',
+      transfer_in: 'Transferência recebida',
+      adjustment: 'Ajuste',
+      reservation: 'Reserva'
+    };
+
+    return `
+      <tr>
+        <td>${movement.created_at
+          ? new Date(movement.created_at).toLocaleString('pt-BR')
+          : '—'}</td>
+        <td>${esc(product?.name || 'Material não localizado')}</td>
+        <td>${esc(location?.name || '—')}</td>
+        <td>${esc(types[movement.movement_type] || movement.movement_type || '—')}</td>
+        <td>${Number(movement.quantity || 0).toLocaleString('pt-BR')}</td>
+        <td>${movement.unit_cost != null
+          ? Number(movement.unit_cost).toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: 'BRL'
+            })
+          : '—'}</td>
+        <td>${esc(supplier?.name || '—')}</td>
+        <td>${esc(member?.full_name || '—')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  setContent('movimentacoes', `
+    ${form}
+
+    <h3>Histórico de movimentações</h3>
+
+    <div class="gm-table-wrap">
+      <table class="gm-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Material</th>
+            <th>Local</th>
+            <th>Tipo</th>
+            <th>Quantidade</th>
+            <th>Custo unitário</th>
+            <th>Fornecedor</th>
+            <th>Responsável</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows || '<tr><td colspan="8">Nenhuma movimentação registrada.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `);
+
+  const formElement = panel.querySelector('#gmEntryForm');
+
+  if (formElement) {
+    formElement.addEventListener('submit', saveEntry);
+  }
+}
+
+async function saveEntry(event) {
+  event.preventDefault();
+
+  if (!canManage()) {
+    return notify('Sem permissão para registrar entradas.', true);
+  }
+
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form).entries());
+
+  const quantity = Number(data.quantity);
+  const unitCost = Number(data.unit_cost);
+
+  if (!data.product_id || !data.location_id ||
+      !Number.isFinite(quantity) || quantity <= 0 ||
+      !Number.isFinite(unitCost) || unitCost < 0) {
+    return notify('Confira os dados obrigatórios da entrada.', true);
+  }
+
+  const button = form.querySelector('[type="submit"]');
+  button.disabled = true;
+  button.textContent = 'Registrando...';
+
+  try {
+    const result = await cloud.rpc('vosco_gm_register_entry', {
+      p_product_id: data.product_id,
+      p_location_id: data.location_id,
+      p_quantity: quantity,
+      p_unit_cost: unitCost,
+      p_supplier_id: data.supplier_id || null,
+      p_reason: data.reason.trim() || null,
+      p_notes: data.notes.trim() || null
+    });
+
+    if (result.error) throw result.error;
+
+    await loadOperationalData();
+
+    notify('Entrada registrada com sucesso.');
+
+  } catch (error) {
+    console.error('[VOSCO GM Entrada]', error);
+    notify(error.message || 'Não foi possível registrar a entrada.', true);
+
+    button.disabled = false;
+    button.textContent = 'Registrar entrada';
+  }
+}
 
   window.gmInit = async function () {
     try {
