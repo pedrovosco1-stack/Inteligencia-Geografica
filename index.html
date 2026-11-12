@@ -5183,6 +5183,10 @@ else if (targetId !== 'signOutBtn') {
 </script>
 
 <script>
+  (function () {
+  const panel = document.getElementById('gestaoMateriaisPanel');
+  if (!panel || typeof cloud === 'undefined') return;
+    
   const gm = {
     products: [],
     suppliers: [],
