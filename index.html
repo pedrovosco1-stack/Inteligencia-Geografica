@@ -5646,12 +5646,21 @@ else if (targetId !== 'signOutBtn') {
         <td>${esc(item.unit || 'un')}</td>
         <td>${esc(item.status || '—')}</td>
         <td>${Number(item.minimum_stock || 0).toLocaleString('pt-BR')}</td>
-        <td>
+                <td>
           ${canManage() ? `
-            <button type="button" class="gm-action secondary"
-              data-gm-edit-product="${item.id}">
-              Editar
-            </button>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button type="button" class="gm-action secondary"
+                data-gm-edit-product="${item.id}">
+                Editar
+              </button>
+
+              ${item.status !== 'deleted' ? `
+                <button type="button" class="gm-action secondary"
+                  data-gm-delete-product="${item.id}">
+                  Excluir
+                </button>
+              ` : ''}
+            </div>
           ` : '—'}
         </td>
       </tr>
