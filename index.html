@@ -1103,6 +1103,15 @@ body:has(#voscoHome.is-visible) .leaflet-control-container {
   color: #f4f1eb;
   font-family: inherit;
 }
+ /* Biblioteca VOSCO — oculta a barra do painel de fundo
+   somente enquanto a Biblioteca estiver aberta */
+body:has(#bibliotecaVoscoPanel[style*="display: flex"]) #voscoHome {
+  scrollbar-width: none;
+}
+
+body:has(#bibliotecaVoscoPanel[style*="display: flex"]) #voscoHome::-webkit-scrollbar:vertical {
+  width: 0;
+} 
 #voscoHome.is-visible {
   display: flex;
 }
