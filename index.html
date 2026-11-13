@@ -5384,8 +5384,207 @@ else if (targetId !== 'signOutBtn') {
     renderMovements();
     renderTransfers();
     renderReservations();
-    renderInventory();  
+    renderInventory();
+    renderReport();  
   }
+  
+function renderReport() {
+  const area = panel.querySelector('#gmReportContent');
+  if (!area) return;
+
+  const activeProducts = gm.products.filter(p =>
+    p.status === 'active' && p.active !== false && !p.deleted_at
+  );
+
+  const money = value => new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(value);
+
+  const quantity = value => Number(value || 0);
+
+  const getStock = productId =>
+    gm.balances
+      .filter(b => b.product_id === productId)
+      .reduce((sum, b) => sum + quantity(b.physical_quantity), 0);
+
+  const totalUnits = activeProducts.reduce(
+    (sum, p) => sum + getStock(p.id), 0
+  );
+
+  const productsWithCost = activeProducts.filter(
+    p => quantity(p.average_unit_cost) > 0
+  );
+
+  const estimatedValue = productsWithCost.reduce(
+    (sum, p) => sum + getStock(p.id) * quantity(p.average_unit_cost), 0
+  );
+
+  const productsWithoutCost = activeProducts.filter(
+    p => quantity(p.average_unit_cost) <= 0
+  ).length;
+
+  area.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:20px 0">
+      <div class="gm-placeholder">
+        <strong>Materiais ativos</strong>
+        <div style="font-size:24px;margin-top:8px">${activeProducts.length}</div>
+      </div>
+      <div class="gm-placeholder">
+        <strong>Unidades em estoque</strong>
+        <div style="font-size:24px;margin-top:8px">${totalUnits}</div>
+      </div>
+      <div class="gm-placeholder">
+        <strong>Valor estimado</strong>
+        <div style="font-size:24px;margin-top:8px">${money(estimatedValue)}</div>
+        <small>Considera materiais com custo cadastrado</small>
+      </div>
+      <div class="gm-placeholder">
+        <strong>Sem custo cadastrado</strong>
+        <div style="font-size:24px;margin-top:8px">${productsWithoutCost}</div>
+      </div>
+    </div>
+
+    <p class="gm-description">
+      A planilha reúne os cadastros, saldos por local e as
+      movimentações carregadas no sistema.
+    </p>
+
+    <button type="button" class="gm-action" id="gmExportExcel">
+      Exportar relatório Excel
+    </button>
+
+    <p class="gm-description" style="margin-top:12px">
+      Histórico de movimentações: ${gm.movements.length} registros carregados.
+    </p>
+  `;
+
+  area.querySelector('#gmExportExcel')?.addEventListener('click', () => {
+    try {
+      const XLSX = window.XLSX;
+      if (!XLSX?.utils || !XLSX.writeFile) {
+        throw new Error('Biblioteca Excel não disponível.');
+      }
+
+      const workbook = XLSX.utils.book_new();
+
+      const categories = Object.fromEntries(
+        gm.categories.map(c => [c.id, c.name])
+      );
+
+      const locations = Object.fromEntries(
+        gm.locations.map(l => [l.id, l.name])
+      );
+
+      const products = Object.fromEntries(
+        gm.products.map(p => [p.id, p])
+      );
+
+      const resumo = [
+        ['RELATÓRIO VOSCO — GESTÃO DE MATERIAIS'],
+        ['Data de geração', new Date().toLocaleString('pt-BR')],
+        [],
+        ['Indicador', 'Resultado'],
+        ['Materiais ativos', activeProducts.length],
+        ['Unidades em estoque', totalUnits],
+        ['Valor estimado com custo cadastrado (R$)', estimatedValue],
+        ['Materiais ativos sem custo cadastrado', productsWithoutCost],
+        ['Movimentações carregadas', gm.movements.length]
+      ];
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.aoa_to_sheet(resumo),
+        'Resumo'
+      );
+
+      const materiais = gm.products.map(p => ({
+        Código: p.code || '',
+        Material: p.name || '',
+        Fabricante: p.manufacturer || '',
+        Marca: p.brand || '',
+        Categoria: categories[p.category_id] || '',
+        Unidade: p.unit || '',
+        Situação: p.status || (p.active ? 'active' : 'inactive'),
+        'Estoque físico': getStock(p.id),
+        'Estoque mínimo': quantity(p.minimum_stock),
+        'Custo médio unitário (R$)': quantity(p.average_unit_cost),
+        'Valor estimado (R$)': quantity(p.average_unit_cost) > 0
+          ? getStock(p.id) * quantity(p.average_unit_cost)
+          : null
+      }));
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(materiais),
+        'Materiais'
+      );
+
+      const estoque = [];
+
+      activeProducts.forEach(p => {
+        gm.locations.forEach(location => {
+          const balance = gm.balances.find(b =>
+            b.product_id === p.id &&
+            b.location_id === location.id
+          );
+
+          estoque.push({
+            Material: p.name,
+            Local: location.name,
+            Unidade: p.unit || '',
+            'Quantidade física': quantity(balance?.physical_quantity),
+            'Estoque mínimo': quantity(p.minimum_stock),
+            'Custo médio unitário (R$)': quantity(p.average_unit_cost),
+            'Valor estimado (R$)': quantity(p.average_unit_cost) > 0
+              ? quantity(balance?.physical_quantity) * quantity(p.average_unit_cost)
+              : null
+          });
+        });
+      });
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(estoque),
+        'Estoque por local'
+      );
+
+      const movimentacoes = gm.movements.map(m => ({
+        Data: m.created_at
+          ? new Date(m.created_at).toLocaleString('pt-BR')
+          : '',
+        Material: products[m.product_id]?.name || 'Material não localizado',
+        Local: locations[m.location_id] || 'Local não localizado',
+        Tipo: m.movement_type || '',
+        Quantidade: quantity(m.quantity),
+        'Custo unitário (R$)': m.unit_cost == null
+          ? null
+          : quantity(m.unit_cost),
+        Motivo: m.reason || '',
+        Observações: m.notes || ''
+      }));
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(movimentacoes),
+        'Movimentações'
+      );
+
+      const hoje = new Date().toISOString().slice(0, 10);
+
+      XLSX.writeFile(
+        workbook,
+        `VOSCO_Relatorio_Materiais_${hoje}.xlsx`
+      );
+
+      notify('Relatório Excel gerado com sucesso.');
+    } catch (error) {
+      console.error('[VOSCO GM Relatório]', error);
+      notify(error.message || 'Não foi possível gerar o relatório.', true);
+    }
+  });
+}
+    
   function renderOverview() {
   const activeProducts = gm.products.filter(
     p => p.status === 'active' && p.active !== false && !p.deleted_at
