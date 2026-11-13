@@ -1075,6 +1075,16 @@ body.client-presentation-mode #clientProjectList {
 body:has(#voscoHome.is-visible) .leaflet-control-container {
   display: none !important;
 }
+/* VOSCO CENTRAL — ocultar barras de rolagem em todo o sistema
+   mantendo a funcionalidade de rolagem */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+}  
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111111">
